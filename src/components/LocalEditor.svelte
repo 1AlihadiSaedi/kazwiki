@@ -15,7 +15,7 @@
   let { slug = 'home', lang = 'fa' } = $props();
 
   let rawMarkdown = $derived(getPageContent(slug, lang) || '');
-  let editorContent = $state(rawMarkdown);
+  let editorContent = $state('');
   let previewHtml = $derived(parseMarkdown(editorContent));
   let mode = $state('write'); // 'write' or 'preview'
 
@@ -198,10 +198,6 @@
     color: var(--color-accent-dark);
     font-size: var(--font-size-sm);
     line-height: 1.6;
-  }
-
-  [data-theme="dark"] .editor-notice {
-    color: var(--color-accent-light);
   }
 
   .editor-notice svg {

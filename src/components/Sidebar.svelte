@@ -13,7 +13,9 @@
 
 <!-- Overlay for mobile -->
 {#if isOpen}
-  <div class="sidebar-overlay" onclick={() => onClose && onClose()}></div>
+  <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+  <div class="sidebar-overlay" role="button" tabindex="-1" onclick={() => onClose && onClose()}
+    onkeydown={(e) => { if (e.key === 'Escape' || e.key === 'Enter') { onClose && onClose(); } }}></div>
 {/if}
 
 <aside class="sidebar" class:sidebar--open={isOpen}>

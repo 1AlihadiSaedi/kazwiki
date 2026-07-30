@@ -2,8 +2,9 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 /**
- * Custom plugin: removes type="module" and crossorigin from script tags
+ * Custom plugin: replaces type="module" with defer and removes crossorigin
  * so the built site works when opened directly from file:// (no server).
+ * "defer" ensures the script runs after DOM is parsed → #app exists.
  */
 function fileProtocolPlugin() {
   return {
@@ -12,7 +13,7 @@ function fileProtocolPlugin() {
       order: 'post',
       handler(html) {
         return html
-          .replace(/type="module"\s*/g, '')
+          .replace(/type="module"/g, 'defer')
           .replace(/\scrossorigin(?:="[^"]*")?/g, '');
       }
     }

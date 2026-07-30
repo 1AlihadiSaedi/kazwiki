@@ -1,4 +1,8 @@
 <script>
+  /**
+   * App.svelte – Root component for Emerald Wiki
+   * Manages routing, auth state, theme, and layout.
+   */
   import './styles/global.css';
   import { initTheme } from './logic/theme.js';
   import { t, getDirection } from './logic/i18n.js';
@@ -68,6 +72,13 @@
   function handleSearch(query) { searchQuery = query; }
   function toggleSidebar() { sidebarOpen = !sidebarOpen; }
   function closeSidebar() { sidebarOpen = false; }
+
+  /* Auto-close sidebar drawer when resizing to desktop */
+  $effect(() => {
+    function onResize() { if (window.innerWidth >= 769) sidebarOpen = false; }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  });
 </script>
 
 <div class="app-layout">
@@ -77,7 +88,8 @@
       <Sidebar {lang} isOpen={sidebarOpen} currentSlug={currentSlug} onNavigate={navigate} onClose={closeSidebar} />
     {/if}
     <main class="main-content">
-      {#if currentRoute === 'wiki'}
+      <!-- Editor FAB — only for logged-in users -->
+      {#if currentRoute === 'wiki' && user}
         <button class="editor-fab" onclick={toggleEditor} title={editorMode ? 'View' : 'Edit'}>
           {#if editorMode}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>

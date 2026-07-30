@@ -1,24 +1,14 @@
 /**
  * wiki.js – Wiki engine: Markdown parser + page loader
- * Loads .md files via Vite's import.meta.glob at build time.
+ * Loads all .md files at build time via wikiContentPlugin (virtual module).
  */
 
-const pageModules = import.meta.glob('/src/wiki-content/*.md', {
-  query: '?raw',
-  eager: true,
-});
-
-/** Extract string from glob module (handles string and Module object) */
-function getRaw(mod) {
-  if (typeof mod === 'string') return mod;
-  if (mod && typeof mod === 'object' && typeof mod.default === 'string') return mod.default;
-  return '';
-}
+import pageModules from 'virtual:wiki-content';
+const pages = pageModules;
 
 export function getPageIndex() {
-  const pages = [];
-  for (const [filePath, mod] of Object.entries(pageModules)) {
-    const content = getRaw(mod);
+  const index = [];
+  for (const [filePath, content] of Object.entries(pages)) {
     if (!content) continue;
     const fileName = filePath.split('/').pop();
     const base = fileName.replace(/\.md$/, '');
@@ -27,18 +17,16 @@ export function getPageIndex() {
     const slug = parts.join('.');
     const match = content.match(/^#\s+(.+)$/m);
     const title = match ? match[1].trim() : slug;
-    pages.push({ slug, lang, title, path: filePath });
+    index.push({ slug, lang, title, path: filePath });
   }
-  return pages;
+  return index;
 }
 
 export function getPageContent(slug, lang) {
   const targetPath = `/src/wiki-content/${slug}.${lang}.md`;
-  const target = pageModules[targetPath];
-  if (target) return getRaw(target);
+  if (pages[targetPath]) return pages[targetPath];
   const fallbackPath = `/src/wiki-content/${slug}.fa.md`;
-  const fallback = pageModules[fallbackPath];
-  if (fallback) return getRaw(fallback);
+  if (pages[fallbackPath]) return pages[fallbackPath];
   return null;
 }
 

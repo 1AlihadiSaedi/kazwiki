@@ -12,3 +12,12 @@
  */
 export const SUPABASE_URL = 'https://xxxxxxxxxxxx.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+
+/**
+ * Default admin credentials (set up in Supabase Dashboard → Authentication → Users):
+ *   Email:    root@root.com
+ *   Password: rootroootroot
+ *
+ * After creating the user in Supabase, run this SQL to grant admin role:
+ *   UPDATE profiles SET role = 'admin' WHERE email = 'root@root.com';
+ */

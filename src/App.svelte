@@ -1,8 +1,4 @@
 <script>
-  /**
-   * App.svelte – Root component for Emerald Wiki
-   * Manages routing, auth state, theme, and layout.
-   */
   import './styles/global.css';
   import { initTheme } from './logic/theme.js';
   import { t, getDirection } from './logic/i18n.js';
@@ -20,10 +16,10 @@
   let currentRoute = $state('wiki');
   let currentSlug = $state('home');
   let editorMode = $state(false);
-  let sidebarOpen = $state(false);
   let searchQuery = $state('');
   let user = $state(null);
   let role = $state(null);
+  let sidebarOpen = $state(typeof window !== 'undefined' ? window.innerWidth >= 769 : false);
 
   $effect(() => { try { initTheme(); } catch {} });
   $effect(() => {
@@ -63,6 +59,12 @@
     return () => window.removeEventListener('hashchange', readRoute);
   });
 
+  $effect(() => {
+    function onResize() { sidebarOpen = window.innerWidth >= 769; }
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  });
+
   function navigate(slug) { window.location.hash = `#/${slug}?lang=${lang}`; }
   function goTo(page) { window.location.hash = `#/${page}?lang=${lang}`; }
   function toggleEditor() {
@@ -72,23 +74,16 @@
   function handleSearch(query) { searchQuery = query; }
   function toggleSidebar() { sidebarOpen = !sidebarOpen; }
   function closeSidebar() { sidebarOpen = false; }
-
-  /* Auto-close sidebar drawer when resizing to desktop */
-  $effect(() => {
-    function onResize() { if (window.innerWidth >= 769) sidebarOpen = false; }
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  });
+  function openSidebar() { sidebarOpen = true; }
 </script>
 
 <div class="app-layout">
   <Header {lang} {user} {role} currentRoute={currentRoute} onToggleSidebar={toggleSidebar} onSearch={handleSearch} onNavigate={goTo} />
   <div class="app-body">
     {#if currentRoute === 'wiki' || currentRoute === 'login' || currentRoute === 'settings'}
-      <Sidebar {lang} isOpen={sidebarOpen} currentSlug={currentSlug} onNavigate={navigate} onClose={closeSidebar} />
+      <Sidebar {lang} isOpen={sidebarOpen} currentSlug={currentSlug} onNavigate={navigate} onClose={closeSidebar} onOpen={openSidebar} />
     {/if}
     <main class="main-content">
-      <!-- Editor FAB — only for logged-in users -->
       {#if currentRoute === 'wiki' && user}
         <button class="editor-fab" onclick={toggleEditor} title={editorMode ? 'View' : 'Edit'}>
           {#if editorMode}
@@ -106,8 +101,10 @@
         {:else}
           <div class="page-empty"><h2>{t(lang, 'pageNotFound')}</h2><p><a href="#/login">{t(lang, 'login')}</a></p></div>
         {/if}
-      {:else if editorMode}
+      {:else if editorMode && user}
         <LocalEditor slug={currentSlug} {lang} />
+      {:else if editorMode}
+        <div class="page-empty"><h2>{t(lang, 'pageNotFound')}</h2><p><a href="#/login">{t(lang, 'login')}</a></p></div>
       {:else}
         <WikiPage slug={currentSlug} {lang} />
       {/if}

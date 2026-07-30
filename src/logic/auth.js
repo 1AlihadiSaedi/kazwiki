@@ -5,10 +5,14 @@
  * Handles: signIn, signOut, getSession, getUser, signUp.
  */
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, isSupabaseConfigured } from '../config.js';
 
-const AUTH_URL = `${SUPABASE_URL}/auth/v1`;
+const AUTH_URL = SUPABASE_URL ? `${SUPABASE_URL}/auth/v1` : null;
 const STORAGE_KEY = 'emerald-wiki-auth';
+
+function requireConfig() {
+  if (!isSupabaseConfigured()) throw new Error('Auth not configured');
+}
 
 /**
  * Store session in localStorage (token only — no sensitive data).
@@ -55,6 +59,7 @@ function clearSession() {
  * @returns {Promise<{ user: object, session: object } | { error: string }>}
  */
 export async function signIn(email, password) {
+  requireConfig();
   const res = await fetch(`${AUTH_URL}/token?grant_type=password`, {
     method: 'POST',
     headers: {
@@ -152,6 +157,7 @@ export async function fetchUser(token) {
  * @returns {Promise<{ user: object | null, session: object | null, role: string | null }>}
  */
 export async function getAuthState() {
+  if (!isSupabaseConfigured()) return { user: null, session: null, role: null };
   const session = loadSession();
   if (!session) return { user: null, session: null, role: null };
 

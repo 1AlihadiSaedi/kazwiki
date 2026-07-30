@@ -53,7 +53,7 @@ const translations = {
     userDeleted: 'کاربر با موفقیت حذف شد',
     userCreated: 'کاربر با موفقیت ایجاد شد',
     roleUpdated: 'نقش کاربر با موفقیت بروزرسانی شد',
-    supabaseNotConfigured: 'اتصال به سرور احراز هویت برقرار نشد. لطفاً Supabase را در فایل config.js تنظیم کنید.',
+    loginFailed: 'ورود ناموفق. ایمیل یا رمز عبور اشتباه است.',
   },
 
   en: {
@@ -105,7 +105,7 @@ const translations = {
     userDeleted: 'User deleted successfully',
     userCreated: 'User created successfully',
     roleUpdated: 'Role updated successfully',
-    supabaseNotConfigured: 'Cannot connect to authentication server. Please configure Supabase in config.js.',
+    loginFailed: 'Login failed. Invalid email or password.',
   },
 };
 

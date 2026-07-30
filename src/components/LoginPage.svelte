@@ -13,12 +13,12 @@
     loading = true;
     try {
       const result = await signIn(email, password);
-      if (result.error) { error = result.error; loading = false; return; }
+      if (result.error) { error = t(lang, 'loginFailed'); loading = false; return; }
       window.location.hash = '#/home';
       window.location.reload();
     } catch (err) {
       loading = false;
-      error = t(lang, 'supabaseNotConfigured');
+      error = t(lang, 'loginFailed');
     }
   }
 </script>
@@ -30,7 +30,7 @@
     <form class="login-form" onsubmit={handleLogin}>
       <div class="form-group">
         <label class="form-label" for="login-email">{t(lang, 'email')}</label>
-        <input id="login-email" type="email" class="form-input" placeholder="root@root.com" bind:value={email} required autocomplete="email" dir="ltr" />
+        <input id="login-email" type="email" class="form-input" placeholder="email@example.com" bind:value={email} required autocomplete="email" dir="ltr" />
       </div>
       <div class="form-group">
         <label class="form-label" for="login-password">{t(lang, 'password')}</label>
@@ -43,8 +43,7 @@
         </div>
       {/if}
       <button type="submit" class="btn-login" disabled={loading}>
-        {#if loading}
-          <span class="spinner"></span>{t(lang, 'loggingIn')}
+        {#if loading}<span class="spinner"></span>{t(lang, 'loggingIn')}
         {:else}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
           {t(lang, 'login')}

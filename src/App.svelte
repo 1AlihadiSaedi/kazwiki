@@ -19,7 +19,25 @@
   let searchQuery = $state('');
   let user = $state(null);
   let role = $state(null);
-  let sidebarOpen = $state(typeof window !== 'undefined' ? window.innerWidth >= 769 : false);
+
+  const DESKTOP = 769;
+  const SB_KEY = 'emerald-wiki-sidebar';
+
+  function getSidebarInit() {
+    if (typeof window === 'undefined') return false;
+    if (window.innerWidth < DESKTOP) return false;
+    try { return localStorage.getItem(SB_KEY) === 'open'; }
+    catch { return false; }
+  }
+
+  let sidebarOpen = $state(getSidebarInit());
+
+  function saveSidebar(val) {
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth >= DESKTOP) {
+      try { localStorage.setItem(SB_KEY, val ? 'open' : 'closed'); } catch {}
+    }
+  }
 
   $effect(() => { try { initTheme(); } catch {} });
   $effect(() => {
@@ -59,12 +77,6 @@
     return () => window.removeEventListener('hashchange', readRoute);
   });
 
-  $effect(() => {
-    function onResize() { sidebarOpen = window.innerWidth >= 769; }
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  });
-
   function navigate(slug) { window.location.hash = `#/${slug}?lang=${lang}`; }
   function goTo(page) { window.location.hash = `#/${page}?lang=${lang}`; }
   function toggleEditor() {
@@ -72,9 +84,9 @@
     else window.location.hash = `#/edit/${currentSlug}?lang=${lang}`;
   }
   function handleSearch(query) { searchQuery = query; }
-  function toggleSidebar() { sidebarOpen = !sidebarOpen; }
-  function closeSidebar() { sidebarOpen = false; }
-  function openSidebar() { sidebarOpen = true; }
+  function toggleSidebar() { sidebarOpen = !sidebarOpen; saveSidebar(sidebarOpen); }
+  function closeSidebar() { sidebarOpen = false; saveSidebar(false); }
+  function openSidebar() { sidebarOpen = true; saveSidebar(true); }
 </script>
 
 <div class="app-layout">

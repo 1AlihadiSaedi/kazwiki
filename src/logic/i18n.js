@@ -17,8 +17,7 @@ const translations = {
     light: 'روشن',
     edit: 'ویرایش',
     editorTitle: 'ویرایشگر محلی',
-    editorNote:
-      'این یک ویرایشگر محلی است. تغییرات فقط در مرورگر شما ذخیره می‌شود. برای ذخیره دائمی، فایل مارک‌دون را دانلود کرده و در پوشه wiki-content پروژه جایگزین کنید، سپس پروژه را دوباره بسازید (build).',
+    editorNote: 'این یک ویرایشگر محلی است. تغییرات فقط در مرورگر شما ذخیره می‌شود. برای ذخیره دائمی، فایل مارک‌دون را دانلود کرده و در پوشه wiki-content پروژه جایگزین کنید، سپس پروژه را دوباره بسازید (build).',
     downloadMarkdown: 'دانلود فایل مارک‌دون',
     preview: 'پیش‌نمایش',
     write: 'نوشتن',
@@ -27,8 +26,6 @@ const translations = {
     toggleSidebar: 'باز کردن منو',
     closeSidebar: 'بستن منو',
     footerText: 'ساخته شده با Svelte — میزبان استاتیک',
-
-    // Auth & Settings
     loginTitle: 'ورود به بخش مدیریت',
     login: 'ورود',
     email: 'ایمیل',
@@ -56,6 +53,7 @@ const translations = {
     userDeleted: 'کاربر با موفقیت حذف شد',
     userCreated: 'کاربر با موفقیت ایجاد شد',
     roleUpdated: 'نقش کاربر با موفقیت بروزرسانی شد',
+    supabaseNotConfigured: 'اتصال به سرور احراز هویت برقرار نشد. لطفاً Supabase را در فایل config.js تنظیم کنید.',
   },
 
   en: {
@@ -71,8 +69,7 @@ const translations = {
     light: 'Light',
     edit: 'Edit',
     editorTitle: 'Local Editor',
-    editorNote:
-      'This is a local editor. Changes are saved only in your browser. To persist changes, download the Markdown file, replace it in the wiki-content folder, and rebuild the project.',
+    editorNote: 'This is a local editor. Changes are saved only in your browser. To persist changes, download the Markdown file, replace it in the wiki-content folder, and rebuild the project.',
     downloadMarkdown: 'Download Markdown',
     preview: 'Preview',
     write: 'Write',
@@ -81,8 +78,6 @@ const translations = {
     toggleSidebar: 'Open Menu',
     closeSidebar: 'Close Menu',
     footerText: 'Built with Svelte — Static Hosting',
-
-    // Auth & Settings
     loginTitle: 'Admin Login',
     login: 'Login',
     email: 'Email',
@@ -110,16 +105,15 @@ const translations = {
     userDeleted: 'User deleted successfully',
     userCreated: 'User created successfully',
     roleUpdated: 'Role updated successfully',
+    supabaseNotConfigured: 'Cannot connect to authentication server. Please configure Supabase in config.js.',
   },
 };
 
-/** Get translation for a key in the given language. Falls back to Persian. */
 export function t(lang, key) {
   const dict = translations[lang] || translations.fa;
   return dict[key] || translations.fa[key] || key;
 }
 
-/** Get all available languages */
 export function getLanguages() {
   return [
     { code: 'fa', label: 'فارسی', dir: 'rtl' },
@@ -127,7 +121,6 @@ export function getLanguages() {
   ];
 }
 
-/** Get direction for a language code */
 export function getDirection(lang) {
   return lang === 'en' ? 'ltr' : 'rtl';
 }

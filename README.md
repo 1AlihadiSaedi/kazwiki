@@ -1,181 +1,150 @@
-# 🟢 Emerald Wiki — راهنمای ساخت و اجرا
+# 🟢 Emerald Wiki — Personal Wiki
 
-ویکی شخصی فوق‌سبک با **Svelte + CSS + JavaScript**.  
-با پوسته زمردین، پشتیبانی فارسی (RTL) و حالت تاریک/روشن.
+Lightweight personal Wiki built with **Svelte + CSS + JavaScript**.  
+Emerald theme, Persian (RTL) support, dark/light mode, and **authentication system**.
 
 ---
 
-## 📁 ساختار پروژه
+## 📁 Project Structure
 
 ```
 wiki/
-├── index.html                  # نقطه ورود HTML
-├── package.json                # وابستگی‌ها و اسکریپت‌ها
-├── vite.config.js              # تنظیمات Vite
-├── svelte.config.js            # تنظیمات Svelte
-├── README.md                   # همین فایل
-│
-└── src/
-    ├── main.js                 # نقطه ورود برنامه
-    ├── App.svelte              # کامپوننت اصلی — مسیریابی و layout
-    │
-    ├── components/
-    │   ├── Header.svelte       # نوار بالای سایت
-    │   ├── Footer.svelte       # فوتر
-    │   ├── Sidebar.svelte      # منوی کناری (لیست صفحات)
-    │   ├── WikiPage.svelte     # نمایش صفحه ویکی
-    │   ├── LocalEditor.svelte  # ویرایشگر محلی مارک‌دون
-    │   ├── ThemeToggle.svelte  # دکمه تغییر پوسته (روشن/تاریک)
-    │   └── LanguageSwitcher.svelte  # دکمه تغییر زبان (FA/EN)
-    │
-    ├── logic/
-    │   ├── i18n.js             # ترجمه‌ها و مدیریت زبان
-    │   ├── theme.js            # مدیریت پوسته (localStorage)
-    │   └── wiki.js             # موتور ویکی — بارگذاری و پارس مارک‌دون
-    │
-    ├── styles/
-    │   ├── variables.css       # متغیرهای CSS (تم زمردین)
-    │   └── global.css          # استایل‌های سراسری
-    │
-    └── wiki-content/           # محتوای ویکی (فایل‌های مارک‌دون)
-        ├── home.fa.md          # صفحه اصلی — فارسی
-        ├── home.en.md          # صفحه اصلی — انگلیسی
-        ├── about.fa.md         # درباره — فارسی
-        └── about.en.md         # درباره — انگلیسی
-```
-
----
-
-## 🛠️ پیش‌نیازها
-
-- **Node.js** نسخه ۱۸ یا بالاتر *(فقط برای build روی سیستم شما)*
-- **npm** (همراه Node.js نصب می‌شود)
-
-> توجه: Node.js فقط برای **ساخت پروژه روی سیستم شما** لازم است.  
-> خروجی نهایی یک سایت **کاملاً استاتیک** است و روی هر هاستی اجرا می‌شود.
-
----
-
-## 🚀 راهنمای ساخت (Build)
-
-```bash
-# ۱. وارد پوشه پروژه شوید
-cd wiki
-
-# ۲. وابستگی‌ها را نصب کنید
-npm install
-
-# ۳. پروژه را بسازید
-npm run build
-```
-
-خروجی در پوشه `dist/` تولید می‌شود.
-
----
-
-## 📤 آپلود روی هاست
-
-**کل محتوای پوشه `dist/` را روی هاست استاتیک خود آپلود کنید.**
-
-فایل‌های داخل `dist/`:
-
-```
-dist/
 ├── index.html
-├── assets/
-│   ├── index-XXXXXXXX.css
-│   └── index-XXXXXXXX.js
-└── favicon.ico (در صورت وجود)
+├── package.json
+├── vite.config.js
+├── svelte.config.js
+├── README.md
+└── src/
+    ├── main.js
+    ├── config.js                 # Supabase credentials
+    ├── App.svelte
+    ├── components/
+    │   ├── Header.svelte
+    │   ├── Footer.svelte
+    │   ├── Sidebar.svelte
+    │   ├── WikiPage.svelte
+    │   ├── LocalEditor.svelte
+    │   ├── LoginPage.svelte      # Admin login
+    │   ├── SettingsPage.svelte   # User management
+    │   ├── ThemeToggle.svelte
+    │   └── LanguageSwitcher.svelte
+    ├── logic/
+    │   ├── i18n.js
+    │   ├── theme.js
+    │   ├── wiki.js
+    │   ├── auth.js               # Supabase Auth client
+    │   └── db.js                 # Supabase DB client
+    ├── styles/
+    │   ├── variables.css
+    │   └── global.css
+    └── wiki-content/
+        ├── home.fa.md / home.en.md
+        └── about.fa.md / about.en.md
 ```
-
-فقط کافی است مرورگر به `index.html` اشاره کند — همه چیز آماده است.
 
 ---
 
-## ➕ اضافه کردن صفحه جدید
-
-۱. یک فایل مارک‌دون جدید در `src/wiki-content/` بسازید:
-
-```
-src/wiki-content/my-page.fa.md     # نسخه فارسی
-src/wiki-content/my-page.en.md     # نسخه انگلیسی (اختیاری)
-```
-
-۲. پروژه را دوباره بسازید:
+## 🚀 Build & Deploy
 
 ```bash
+npm install
 npm run build
+# Upload the dist/ folder to any static hosting
 ```
 
-۳. پوشه `dist/` جدید را روی هاست آپلود کنید.
+The `dist/` folder contains a fully static website — open `index.html` directly or serve with any HTTP server.
 
 ---
 
-## ✏️ ویرایش صفحات
+## 🔐 Authentication Setup (Supabase)
 
-### ویرایشگر محلی (Local Editor)
+### 1. Create a Supabase Project
 
-ویرایشگر درون مرورگر به شما امکان **پیش‌نمایش زنده** و **دانلود** فایل مارک‌دون را می‌دهد:
+1. Go to [supabase.com](https://supabase.com) → create a free project
+2. Go to **Settings → API**
+3. Copy `Project URL` and `anon public` key
+4. Edit `src/config.js`:
 
-1. روی هر صفحه، دکمه مداد شناور (پایین-چپ) را کلیک کنید.
-2. متن مارک‌دون را ویرایش کنید.
-3. بین حالت **نوشتن** و **پیش‌نمایش** جابجا شوید.
-4. روی **دانلود فایل مارک‌دون** کلیک کنید.
-5. فایل دانلود شده را در `src/wiki-content/` جایگزین کنید.
-6. پروژه را دوباره بسازید و آپلود کنید.
-
----
-
-## ⚠️ محدودیت‌های هاست استاتیک
-
-| قابلیت | وضعیت | توضیح |
-|--------|-------|-------|
-| **ذخیره روی سرور** | ❌ غیرممکن | فایل‌های مارک‌دون در زمان build به HTML تبدیل می‌شوند. برای تغییر محتوا باید rebuild کنید. |
-| **احراز هویت** | ❌ غیرممکن | بدون بک‌اند، لاگین امن قابل پیاده‌سازی نیست. |
-| **جستجوی پیشرفته** | ⚠️ محدود | جستجو فقط بین صفحاتی که در build بارگذاری شده‌اند کار می‌کند. |
-| **دیتابیس** | ❌ غیرممکن | تمام داده‌ها در فایل‌های استاتیک ذخیره می‌شوند. |
-
----
-
-## 🎨 شخصی‌سازی
-
-### تغییر رنگ‌ها
-
-فایل `src/styles/variables.css` را ویرایش کنید. رنگ‌های اصلی:
-
-```css
---color-accent: #059669;        /* سبز زمردی اصلی */
---color-accent-light: #10b981;  /* سبز زمردی روشن */
---color-accent-dark: #047857;   /* سبز زمردی تیره */
+```js
+export const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOi...';
 ```
 
-### اضافه کردن زبان جدید
+### 2. Create the profiles Table
 
-در `src/logic/i18n.js` یک زبان جدید به `translations` و `getLanguages()` اضافه کنید.
+Run this SQL in the Supabase **SQL Editor**:
 
----
+```sql
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT UNIQUE,
+  display_name TEXT,
+  role TEXT DEFAULT 'viewer' CHECK (role IN ('admin', 'editor', 'viewer')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-## 📊 حجم پروژه
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
-| بخش | حجم تقریبی |
-|-----|-----------|
-| Svelte + JS bundle | ~۸ KB (gzipped) |
-| CSS | ~۳ KB (gzipped) |
-| کل خروجی | کمتر از ۲۰ KB |
+CREATE POLICY "Admins can do everything"
+  ON profiles FOR ALL TO authenticated
+  USING (role = 'admin') WITH CHECK (role = 'admin');
 
----
-
-## 🧪 اجرای محلی برای توسعه
-
-```bash
-npm run dev
+CREATE POLICY "Users can read own profile"
+  ON profiles FOR SELECT TO authenticated
+  USING (auth.uid() = id);
 ```
 
-سپس `http://localhost:5173` را در مرورگر باز کنید.  
-تغییرات به صورت زنده اعمال می‌شوند (Hot Module Replacement).
+### 3. Disable Email Confirmation (optional)
+
+**Authentication → Settings** → turn off **Confirm email**.
+
+### 4. Create Admin User
+
+1. **Authentication → Users** → **Add user**
+2. Enter admin email + password
+3. In SQL Editor:
+
+```sql
+UPDATE profiles SET role = 'admin' WHERE email = 'admin@example.com';
+```
+
+Now `npm run build`, open the site, and navigate to `#/login`.
 
 ---
 
-## 📄 مجوز
+## ✏️ Editing Pages
 
-MIT — استفاده آزاد برای هر منظوری.
+Click the floating pencil button (bottom-left) to open the **Local Editor**:
+
+1. Edit markdown
+2. Toggle between **Write** and **Preview** modes
+3. Click **Download Markdown**
+4. Replace the file in `src/wiki-content/`
+5. Rebuild and redeploy
+
+---
+
+## ⚠️ Static Hosting Limitations
+
+| Feature | Status | Note |
+|---------|--------|------|
+| Server-side saving | ❌ | Rebuild required for content changes |
+| Real auth (no backend) | ❌ | Supabase handles auth securely |
+| Dynamic search | ⚠️ | Limited to bundled pages |
+| Database | ❌ | Supabase provides DB |
+
+---
+
+## 📊 Bundle Size
+
+| Part | Approx. Size |
+|------|-------------|
+| Svelte + JS | ~23 KB (gzipped) |
+| CSS | ~3 KB (gzipped) |
+| **Total** | **~26 KB** |
+
+---
+
+## 📄 License
+
+MIT — free for any use.

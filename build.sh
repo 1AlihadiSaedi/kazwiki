@@ -15,7 +15,7 @@ if [ ! -f .env ]; then
     exit 1
   fi
   echo ""
-  echo "✏️  EDIT .env with your Supabase credentials:"
+  echo "✏️  EDIT .env with your Supabase credentials (or leave as-is to skip auth):"
   echo ""
   echo "   VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co"
   echo "   VITE_SUPABASE_ANON_KEY=eyJhbGciOi..."
@@ -24,12 +24,13 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-# 2. Validate .env is not placeholders
+# 2. Check credentials — warn but continue
 URL=$(grep VITE_SUPABASE_URL .env | cut -d '=' -f2)
 if [ "$URL" = "https://xxxxxxxxxxxx.supabase.co" ] || [ -z "$URL" ]; then
-  echo "❌ SUPABASE_URL is still a placeholder in .env"
-  echo "   Edit .env and set your real Supabase URL + anon key."
-  exit 1
+  echo "⚠️  SUPABASE_URL not configured (placeholder detected)"
+  echo "   Wiki will work fine, but login & editing will be unavailable."
+  echo "   To enable auth later, edit .env with real Supabase credentials."
+  echo ""
 fi
 
 # 3. Install & build

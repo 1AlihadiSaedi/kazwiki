@@ -24,19 +24,18 @@ function wikiContentPlugin() {
       }
     },
     configureServer(server) {
-      const layer = {
-        route: '',
-        handle(req, res, next) {
-          if (req.url !== '/api/save' || req.method !== 'POST') return next();
+      const http = server.httpServer;
+      const orig = http.listeners('request').slice();
+      http.removeAllListeners('request');
+      http.on('request', (req, res) => {
+        if (req.method === 'POST' && req.url === '/api/save') {
           let body = '';
-          req.on('data', chunk => body += chunk);
+          req.on('data', c => body += c);
           req.on('end', () => {
             try {
               const { slug, lang, content } = JSON.parse(body);
-              if (!slug || !lang || content == null) throw new Error('missing fields');
               const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
-              const file = path.join(contentDir, `${safe}.${lang}.md`);
-              fs.writeFileSync(file, content, 'utf-8');
+              fs.writeFileSync(path.join(contentDir, `${safe}.${lang}.md`), content, 'utf-8');
               res.writeHead(200, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md` }));
             } catch (e) {
@@ -44,9 +43,10 @@ function wikiContentPlugin() {
               res.end(JSON.stringify({ ok: false, error: e.message }));
             }
           });
+          return;
         }
-      };
-      server.middlewares.stack.unshift(layer);
+        for (const fn of orig) fn.call(http, req, res);
+      });
     },
   };
 }

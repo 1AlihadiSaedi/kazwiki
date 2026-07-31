@@ -39,25 +39,18 @@ function emitFilesPlugin() {
       const dist = path.resolve(__dirname, 'dist');
       const pagesDir = path.join(dist, 'pages');
       fs.mkdirSync(pagesDir, { recursive: true });
-
       const srcDir = path.resolve(__dirname, 'src/wiki-content');
       let files = [];
       try { files = fs.readdirSync(srcDir).filter(f => f.endsWith('.md')); } catch {}
       for (const f of files)
         fs.copyFileSync(path.join(srcDir, f), path.join(pagesDir, f));
-
       let preConfig = {};
       try {
         const mod = await import(path.resolve(__dirname, 'config.js'));
         preConfig = mod.default || mod;
-      } catch (e) {
-        console.warn('  ⚠️  config.js not found — using defaults');
-      }
-
+      } catch (e) { console.warn('  ⚠️  config.js not found — using defaults'); }
       const passwordHash = preConfig?.admin?.password
-        ? crypto.createHash('sha256').update(preConfig.admin.password).digest('hex')
-        : '';
-
+        ? crypto.createHash('sha256').update(preConfig.admin.password).digest('hex') : '';
       const publicConfig = {
         admin: { email: preConfig?.admin?.email || '', passwordHash },
         defaultLanguage: preConfig?.defaultLanguage || 'fa',
@@ -65,15 +58,10 @@ function emitFilesPlugin() {
         homePage: preConfig?.homePage || 'home',
         title: preConfig?.title || { fa: 'ویکی زمردین', en: 'Emerald Wiki' },
         description: preConfig?.description || { fa: '', en: '' },
-        supabase: preConfig?.supabase || { url: '', anonKey: '' },
       };
-
-      fs.writeFileSync(
-        path.join(dist, 'config.js'),
-        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(publicConfig)};})();`
-      );
-
-      console.log(`  ✅ dist/config.js  (SHA‑256 hashed admin password)`);
+      fs.writeFileSync(path.join(dist, 'config.js'),
+        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(publicConfig)};})();`);
+      console.log(`  ✅ dist/config.js  (SHA-256 hashed admin password)`);
       console.log(`  ✅ dist/pages/     (${files.length} .md files)`);
     },
   };
@@ -96,8 +84,6 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist', assetsDir: 'assets', cssCodeSplit: false, minify: 'esbuild',
-    rollupOptions: {
-      output: { format: 'iife', inlineDynamicImports: true, manualChunks: undefined },
-    },
+    rollupOptions: { output: { format: 'iife', inlineDynamicImports: true, manualChunks: undefined } },
   },
 });

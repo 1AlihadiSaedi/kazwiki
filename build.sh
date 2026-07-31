@@ -1,11 +1,8 @@
 #!/bin/bash
 set -e
-
 echo "🟢 Emerald Wiki — Build Script"
 echo "==============================="
 echo ""
-
-# 1. Check for config.js (pre-build config)
 if [ ! -f config.js ]; then
   if [ -f config.example.js ]; then
     echo "⚠️  config.js not found. Creating from config.example.js..."
@@ -23,23 +20,11 @@ if [ ! -f config.js ]; then
   echo "   Then run:  ./build.sh"
   exit 1
 fi
-
-# 2. Check for .env (optional — only needed for Supabase)
-if [ ! -f .env ]; then
-  if [ -f .env.example ]; then
-    cp .env.example .env
-    echo "ℹ️  .env created from .env.example (optional — Supabase only)"
-  fi
-fi
-
-# 3. Install & build
 echo "📦 Installing dependencies..."
 npm install
-
 echo ""
 echo "🔨 Building..."
 npm run build
-
 echo ""
 echo "✅ Build complete!"
 echo "   Output: dist/"

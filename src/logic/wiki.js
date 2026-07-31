@@ -1,30 +1,13 @@
-/**
- * wiki.js – Wiki engine: Markdown parser + page loader
- */
 import pageModules from 'virtual:wiki-content';
-
-const pages = (typeof window !== 'undefined' && window.__EMERALD_PAGES__)
-  ? window.__EMERALD_PAGES__
-  : pageModules;
-
+const pages = (typeof window !== 'undefined' && window.__EMERALD_PAGES__) ? window.__EMERALD_PAGES__ : pageModules;
 export const liveCache = {};
 
 export async function fetchLiveContent(slug, lang) {
   const key = `${slug}.${lang}`;
-  const urls = [
-    `/src/wiki-content/${slug}.${lang}.md`,
-    `/pages/${slug}.${lang}.md`
-  ];
-  for (const url of urls) {
-    try {
-      const res = await fetch(url);
-      if (res.ok) {
-        const text = await res.text();
-        liveCache[key] = text;
-        return text;
-      }
-    } catch {}
-  }
+  try {
+    const res = await fetch(`/pages/${slug}.${lang}.md`);
+    if (res.ok) { const text = await res.text(); liveCache[key] = text; return text; }
+  } catch {}
   return null;
 }
 
@@ -57,11 +40,7 @@ export function getPageContent(slug, lang) {
 export function parseMarkdown(md) {
   if (!md) return '';
   let html = md;
-  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) => {
-    const escaped = escapeHtml(code.trim());
-    const langAttr = lang ? ` data-lang="${lang}"` : '';
-    return `<pre${langAttr}><code>${escaped}</code></pre>`;
-  });
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) => { const escaped = escapeHtml(code.trim()); const langAttr = lang ? ` data-lang="${lang}"` : ''; return `<pre${langAttr}><code>${escaped}</code></pre>`; });
   html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
   html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
   html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
@@ -75,10 +54,7 @@ export function parseMarkdown(md) {
   html = html.replace(/^\d+\.\s+(.+)$/gm, '<oli>$1</oli>');
   html = html.replace(/((?:<oli>.*<\/oli>\n?)+)/g, '<ol>$1</ol>');
   html = html.replace(/<\/?oli>/g, (tag) => tag.replace('oli', 'li'));
-  html = html.replace(/^\|(.+)\|$/gm, (_match, cells) => {
-    const cellArray = cells.split('|').map((c) => c.trim());
-    return '<tr>' + cellArray.map((c) => `<td>${c}</td>`).join('') + '</tr>';
-  });
+  html = html.replace(/^\|(.+)\|$/gm, (_match, cells) => { const cellArray = cells.split('|').map((c) => c.trim()); return '<tr>' + cellArray.map((c) => `<td>${c}</td>`).join('') + '</tr>'; });
   html = html.replace(/((?:<tr>.*<\/tr>\n?)+)/g, '<table>$1</table>');
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
@@ -97,9 +73,7 @@ export function parseMarkdown(md) {
   return html;
 }
 
-function escapeHtml(text) {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+function escapeHtml(text) { return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
 export function getAllSlugs() {
   const index = getPageIndex();

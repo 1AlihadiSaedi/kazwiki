@@ -23,40 +23,58 @@ function wikiPlugin() {
     return pages;
   }
 
-  function addSaveEndpoint(server) {
+  function addMiddleware(server) {
     server.middlewares.use((req, res, next) => {
-      if (req.method !== 'POST' || req.url !== '/api/save') return next();
-      let body = '';
-      req.on('data', c => body += c);
-      req.on('end', () => {
+      if (req.method === 'GET' && req.url.startsWith('/pages/') && req.url.endsWith('.md')) {
+        const fname = req.url.split('/').pop();
+        const file = path.join(contentDir, fname);
         try {
-          const { slug, lang, content } = JSON.parse(body);
-          const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
-          const file = path.join(contentDir, `${safe}.${lang}.md`);
-          fs.writeFileSync(file, content, 'utf-8');
-          const distFile = path.resolve(__dirname, 'dist', 'pages', `${safe}.${lang}.md`);
-          try { fs.mkdirSync(path.dirname(distFile), { recursive: true }); fs.copyFileSync(file, distFile); } catch {}
-          const verified = fs.readFileSync(file, 'utf-8') === content;
-          console.log(`  💾 Saved: ${safe}.${lang}.md  (${content.length}B, verified=${verified})`);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md`, verified }));
-        } catch (e) {
-          console.error('  ❌ Save:', e.message);
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: false, error: e.message }));
+          res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end(fs.readFileSync(file, 'utf-8'));
+          return;
+        } catch {
+          const distFile = path.resolve(__dirname, 'dist', 'pages', fname);
+          try {
+            res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end(fs.readFileSync(distFile, 'utf-8'));
+            return;
+          } catch {}
+          res.writeHead(404); res.end('Not found'); return;
         }
-      });
+      }
+      if (req.method === 'POST' && req.url === '/api/save') {
+        let body = '';
+        req.on('data', c => body += c);
+        req.on('end', () => {
+          try {
+            const { slug, lang, content } = JSON.parse(body);
+            const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
+            const file = path.join(contentDir, `${safe}.${lang}.md`);
+            fs.writeFileSync(file, content, 'utf-8');
+            const distFile = path.resolve(__dirname, 'dist', 'pages', `${safe}.${lang}.md`);
+            try { fs.mkdirSync(path.dirname(distFile), { recursive: true }); fs.copyFileSync(file, distFile); } catch {}
+            const verified = fs.readFileSync(file, 'utf-8') === content;
+            console.log(`  💾 Saved: ${safe}.${lang}.md  (${content.length}B, verified=${verified})`);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md`, verified }));
+          } catch (e) {
+            console.error('  ❌ Save:', e.message);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+          }
+        });
+        return;
+      }
+      next();
     });
   }
 
   return {
     name: 'wiki',
     resolveId(id) { if (id === V) return R; },
-    load(id) {
-      if (id === R) return `const data=${JSON.stringify(loadAll(this))};export default data;`;
-    },
-    configureServer: addSaveEndpoint,
-    configurePreviewServer: addSaveEndpoint,
+    load(id) { if (id === R) return `const data=${JSON.stringify(loadAll(this))};export default data;`; },
+    configureServer: addMiddleware,
+    configurePreviewServer: addMiddleware,
   };
 }
 
@@ -64,9 +82,7 @@ function emitPlugin() {
   let cfg = {};
   return {
     name: 'emit',
-    async buildStart() {
-      try { cfg = await import(path.resolve(__dirname, 'src/config.js')); } catch {}
-    },
+    async buildStart() { try { cfg = await import(path.resolve(__dirname, 'src/config.js')); } catch {} },
     async closeBundle() {
       const dist = path.resolve(__dirname, 'dist');
       const pagesDir = path.join(dist, 'pages');

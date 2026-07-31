@@ -13,7 +13,7 @@
   async function saveToFile(){
     saving=true;
     try{
-      const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,lang,content:editorContent})});
+      const r=await fetch('http://localhost:5174/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,lang,content:editorContent})});
       const d=await r.json();
       toast={ok:d.ok,msg:d.ok?t(lang,'saved'):t(lang,'saveFailed')};
     }catch{toast={ok:false,msg:t(lang,'saveFailed')}}

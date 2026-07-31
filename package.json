@@ -4,9 +4,9 @@
   "description": "Lightweight personal Wiki – Svelte static site with Emerald theme",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node save-server.js & vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "node save-server.js & vite preview"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.0.0",

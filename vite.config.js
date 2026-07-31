@@ -8,37 +8,6 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const contentDir = path.resolve(__dirname, 'src/wiki-content');
 
-/** shared save handler — used by both dev & preview */
-function patchHttpEmit(server) {
-  const http = server.httpServer;
-  if (!http || http.__patched) return;
-  http.__patched = true;
-  const _emit = http.emit.bind(http);
-  http.emit = function (event, ...args) {
-    if (event === 'request') {
-      const [req, res] = args;
-      if (req.method === 'POST' && req.url === '/api/save') {
-        let body = '';
-        req.on('data', c => body += c);
-        req.on('end', () => {
-          try {
-            const { slug, lang, content } = JSON.parse(body);
-            const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
-            fs.writeFileSync(path.join(contentDir, `${safe}.${lang}.md`), content, 'utf-8');
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md` }));
-          } catch (e) {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: false, error: e.message }));
-          }
-        });
-        return true;
-      }
-    }
-    return _emit(event, ...args);
-  };
-}
-
 function wikiContentPlugin() {
   const V = 'virtual:wiki-content', R = '\0' + V;
   return {
@@ -54,8 +23,6 @@ function wikiContentPlugin() {
         return `const data=${JSON.stringify(pages)};export default data;`;
       }
     },
-    configureServer: patchHttpEmit,
-    configurePreviewServer: patchHttpEmit,
   };
 }
 

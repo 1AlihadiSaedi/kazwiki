@@ -1,12 +1,12 @@
-// ===== Emerald Wiki — Pre&#8209;build Config =====
+// ===== Emerald Wiki — Pre‑build Config =====
 // dist/config.js is auto-generated from this file at build time.
 // ⚠️  Keep this file PRIVATE — contains admin plain password.
 // Already gitignored.
 
 export default {
   admin: {
-    email: 'alihadiq100@gmail.com',
-    password: 'admin123',
+    email: 'root@root.com',
+    password: 'RootRootRoot',
   },
 
   defaultLanguage: 'fa',

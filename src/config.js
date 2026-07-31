@@ -1,13 +1,11 @@
-/**
- * config.js – Supabase configuration (read from .env at build time)
- *
- * Values are embedded at BUILD TIME by Vite via import.meta.env.
- * They are NOT editable after npm run build.
- */
-export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const runtime = typeof window !== 'undefined' ? window.__EMERALD_CONFIG__ : null;
 
-/** Returns true if Supabase credentials are configured */
+export const SUPABASE_URL =
+  (runtime && runtime.SUPABASE_URL) || import.meta.env.VITE_SUPABASE_URL;
+
+export const SUPABASE_ANON_KEY =
+  (runtime && runtime.SUPABASE_ANON_KEY) || import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 export function isSupabaseConfigured() {
   return !!(SUPABASE_URL && SUPABASE_ANON_KEY &&
     SUPABASE_URL !== 'https://xxxxxxxxxxxx.supabase.co');

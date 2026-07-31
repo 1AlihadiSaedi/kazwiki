@@ -1,10 +1,17 @@
 /**
  * wiki.js – Wiki engine: Markdown parser + page loader
- * Loads all .md files at build time via wikiContentPlugin (virtual module).
+ *
+ * PROD:    reads from window.__EMERALD_PAGES__ (dist/pages.js)
+ * DEV:     reads from virtual:wiki-content (vite plugin)
+ * Parses Markdown to HTML with a lightweight custom parser.
+ * No external Markdown library dependency – keeps bundle tiny.
  */
 
 import pageModules from 'virtual:wiki-content';
-const pages = pageModules;
+
+const pages = (typeof window !== 'undefined' && window.__EMERALD_PAGES__)
+  ? window.__EMERALD_PAGES__
+  : pageModules;
 
 export function getPageIndex() {
   const index = [];

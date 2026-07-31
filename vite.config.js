@@ -25,34 +25,31 @@ function wikiContentPlugin() {
   };
 }
 
-function separateFilesPlugin() {
+function emitFilesPlugin() {
   return {
-    name: 'separate-files',
+    name: 'emit-files',
     transformIndexHtml: {
       order: 'pre',
       handler(html) {
-        return html.replace(
-          '</head>',
-          '  <script src="./config.js" defer></script>\n  <script src="./pages.js" defer></script>\n  </head>'
-        );
+        return html.replace('</head>', '  <script src="./config.js" defer></script>\n  </head>');
       },
     },
     closeBundle() {
       const dist = path.resolve(__dirname, 'dist');
+      const pagesDir = path.join(dist, 'pages');
+      fs.mkdirSync(pagesDir, { recursive: true });
 
-      // pages.js
-      const mdDir = path.resolve(__dirname, 'src/wiki-content');
+      const srcDir = path.resolve(__dirname, 'src/wiki-content');
       let files = [];
-      try { files = fs.readdirSync(mdDir).filter(f => f.endsWith('.md')); } catch {}
-      const pages = {};
+      try { files = fs.readdirSync(srcDir).filter(f => f.endsWith('.md')); } catch {}
       for (const f of files)
-        pages[`/src/wiki-content/${f}`] = fs.readFileSync(path.join(mdDir, f), 'utf-8');
-      fs.writeFileSync(
-        path.join(dist, 'pages.js'),
-        `(function(){window.__EMERALD_PAGES__=${JSON.stringify(pages)};})();`
-      );
+        fs.copyFileSync(path.join(srcDir, f), path.join(pagesDir, f));
 
-      // config.js
+      let siteConfig = {};
+      try {
+        siteConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'site.config.json'), 'utf-8'));
+      } catch {}
+
       let SUPABASE_URL = '', SUPABASE_ANON_KEY = '';
       try {
         const env = fs.readFileSync(path.resolve(__dirname, '.env'), 'utf-8');
@@ -61,12 +58,15 @@ function separateFilesPlugin() {
         if (u) SUPABASE_URL = u[1].trim();
         if (k) SUPABASE_ANON_KEY = k[1].trim();
       } catch {}
+
+      const config = { ...siteConfig, supabase: { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY } };
       fs.writeFileSync(
         path.join(dist, 'config.js'),
-        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify({SUPABASE_URL,SUPABASE_ANON_KEY})};})();`
+        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(config)};})();`
       );
 
-      console.log('  ✅ Emitted: dist/config.js  dist/pages.js');
+      console.log(`  ✅ dist/pages/  (${files.length} .md files)`);
+      console.log('  ✅ dist/config.js');
     },
   };
 }
@@ -84,7 +84,7 @@ function fileProtocolPlugin() {
 }
 
 export default defineConfig({
-  plugins: [svelte(), wikiContentPlugin(), separateFilesPlugin(), fileProtocolPlugin()],
+  plugins: [svelte(), wikiContentPlugin(), emitFilesPlugin(), fileProtocolPlugin()],
   base: './',
   build: {
     outDir: 'dist', assetsDir: 'assets', cssCodeSplit: false, minify: 'esbuild',

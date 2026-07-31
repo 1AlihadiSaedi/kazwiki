@@ -4,6 +4,7 @@
   import { t, getDirection } from './logic/i18n.js';
   import { getAuthState } from './logic/auth.js';
   import { getMyProfile } from './logic/db.js';
+  import { HOME_PAGE, DEFAULT_LANGUAGE } from './config.js';
   import Header from './components/Header.svelte';
   import Footer from './components/Footer.svelte';
   import Sidebar from './components/Sidebar.svelte';
@@ -12,9 +13,9 @@
   import LoginPage from './components/LoginPage.svelte';
   import SettingsPage from './components/SettingsPage.svelte';
 
-  let lang = $state('fa');
+  let lang = $state(DEFAULT_LANGUAGE);
   let currentRoute = $state('wiki');
-  let currentSlug = $state('home');
+  let currentSlug = $state(HOME_PAGE);
   let editorMode = $state(false);
   let searchQuery = $state('');
   let user = $state(null);
@@ -60,13 +61,18 @@
   }
 
   function readRoute() {
-    const hash = window.location.hash.slice(1) || '/home';
+    const hash = window.location.hash.slice(1) || `/${HOME_PAGE}`;
     const [path, queryString] = hash.split('?');
     const params = new URLSearchParams(queryString || '');
     if (path === '/login') { currentRoute = 'login'; editorMode = false; }
     else if (path === '/settings') { currentRoute = 'settings'; editorMode = false; }
-    else if (path.startsWith('/edit/')) { currentRoute = 'wiki'; editorMode = true; currentSlug = path.replace('/edit/', '') || 'home'; }
-    else { currentRoute = 'wiki'; editorMode = false; currentSlug = path.replace(/^\//, '') || 'home'; }
+    else if (path.startsWith('/edit/')) {
+      currentRoute = 'wiki'; editorMode = true;
+      currentSlug = path.replace('/edit/', '') || HOME_PAGE;
+    } else {
+      currentRoute = 'wiki'; editorMode = false;
+      currentSlug = path.replace(/^\//, '') || HOME_PAGE;
+    }
     const urlLang = params.get('lang');
     if (urlLang === 'en' || urlLang === 'fa') lang = urlLang;
   }

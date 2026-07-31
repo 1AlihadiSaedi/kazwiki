@@ -1,7 +1,4 @@
-/**
- * i18n – Internationalization module for Emerald Wiki
- * Default language: Persian (fa), with English (en) support.
- */
+import { DEFAULT_LANGUAGE, LANGUAGES } from '../config.js';
 
 const translations = {
   fa: {
@@ -17,7 +14,7 @@ const translations = {
     light: 'روشن',
     edit: 'ویرایش',
     editorTitle: 'ویرایشگر محلی',
-    editorNote: 'این یک ویرایشگر محلی است. تغییرات فقط در مرورگر شما ذخیره می‌شود. برای ذخیره دائمی، فایل مارک‌دون را دانلود کرده و در پوشه wiki-content پروژه جایگزین کنید، سپس پروژه را دوباره بسازید (build).',
+    editorNote: 'این یک ویرایشگر محلی است. تغییرات فقط در مرورگر شما ذخیره می‌شود.',
     downloadMarkdown: 'دانلود فایل مارک‌دون',
     preview: 'پیش‌نمایش',
     write: 'نوشتن',
@@ -55,7 +52,6 @@ const translations = {
     roleUpdated: 'نقش کاربر با موفقیت بروزرسانی شد',
     loginFailed: 'ورود ناموفق. ایمیل یا رمز عبور اشتباه است.',
   },
-
   en: {
     siteTitle: 'Emerald Wiki',
     home: 'Home',
@@ -69,7 +65,7 @@ const translations = {
     light: 'Light',
     edit: 'Edit',
     editorTitle: 'Local Editor',
-    editorNote: 'This is a local editor. Changes are saved only in your browser. To persist changes, download the Markdown file, replace it in the wiki-content folder, and rebuild the project.',
+    editorNote: 'This is a local editor. Changes are saved only in your browser.',
     downloadMarkdown: 'Download Markdown',
     preview: 'Preview',
     write: 'Write',
@@ -110,15 +106,19 @@ const translations = {
 };
 
 export function t(lang, key) {
-  const dict = translations[lang] || translations.fa;
-  return dict[key] || translations.fa[key] || key;
+  const dict = translations[lang] || translations[DEFAULT_LANGUAGE] || translations.fa;
+  return dict[key] || translations[DEFAULT_LANGUAGE]?.[key] || translations.fa[key] || key;
 }
 
+const LANG_META = {
+  fa: { label: 'فارسی', dir: 'rtl' },
+  en: { label: 'English', dir: 'ltr' },
+};
+
 export function getLanguages() {
-  return [
-    { code: 'fa', label: 'فارسی', dir: 'rtl' },
-    { code: 'en', label: 'English', dir: 'ltr' },
-  ];
+  return LANGUAGES
+    .filter(code => LANG_META[code])
+    .map(code => ({ code, ...LANG_META[code] }));
 }
 
 export function getDirection(lang) {

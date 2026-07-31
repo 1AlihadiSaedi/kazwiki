@@ -1,0 +1,13 @@
+{
+  "defaultLanguage": "fa",
+  "languages": ["fa", "en"],
+  "homePage": "home",
+  "title": {
+    "fa": "ویکی زمردین",
+    "en": "Emerald Wiki"
+  },
+  "description": {
+    "fa": "ویکی شخصی سبک و سریع — ساخته شده با Svelte",
+    "en": "Lightweight personal wiki — Built with Svelte"
+  }
+}

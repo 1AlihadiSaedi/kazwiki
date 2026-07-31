@@ -25,28 +25,30 @@ function wikiContentPlugin() {
     },
     configureServer(server) {
       const http = server.httpServer;
-      const orig = http.listeners('request').slice();
-      http.removeAllListeners('request');
-      http.on('request', (req, res) => {
-        if (req.method === 'POST' && req.url === '/api/save') {
-          let body = '';
-          req.on('data', c => body += c);
-          req.on('end', () => {
-            try {
-              const { slug, lang, content } = JSON.parse(body);
-              const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
-              fs.writeFileSync(path.join(contentDir, `${safe}.${lang}.md`), content, 'utf-8');
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md` }));
-            } catch (e) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ ok: false, error: e.message }));
-            }
-          });
-          return;
+      const _emit = http.emit.bind(http);
+      http.emit = function(event, ...args) {
+        if (event === 'request') {
+          const [req, res] = args;
+          if (req.method === 'POST' && req.url === '/api/save') {
+            let body = '';
+            req.on('data', c => body += c);
+            req.on('end', () => {
+              try {
+                const { slug, lang, content } = JSON.parse(body);
+                const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
+                fs.writeFileSync(path.join(contentDir, `${safe}.${lang}.md`), content, 'utf-8');
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md` }));
+              } catch (e) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: e.message }));
+              }
+            });
+            return true;
+          }
         }
-        for (const fn of orig) fn.call(http, req, res);
-      });
+        return _emit(event, ...args);
+      };
     },
   };
 }
@@ -62,31 +64,20 @@ function emitFilesPlugin() {
       const dist = path.resolve(__dirname, 'dist');
       const pagesDir = path.join(dist, 'pages');
       fs.mkdirSync(pagesDir, { recursive: true });
-
       let files = [];
       try { files = fs.readdirSync(contentDir).filter(f => f.endsWith('.md')); } catch {}
-      for (const f of files)
-        fs.copyFileSync(path.join(contentDir, f), path.join(pagesDir, f));
-
-      const hash = cfg.ADMIN_PASSWORD
-        ? crypto.createHash('sha256').update(cfg.ADMIN_PASSWORD).digest('hex') : '';
-
+      for (const f of files) fs.copyFileSync(path.join(contentDir, f), path.join(pagesDir, f));
+      const hash = cfg.ADMIN_PASSWORD ? crypto.createHash('sha256').update(cfg.ADMIN_PASSWORD).digest('hex') : '';
       const out = {
         admin: { username: cfg.ADMIN_USERNAME || 'root', passwordHash: hash },
-        defaultLanguage: cfg.DEFAULT_LANGUAGE || 'fa',
-        languages: cfg.LANGUAGES || ['fa', 'en'],
-        homePage: cfg.HOME_PAGE || 'home',
-        title: cfg.SITE_TITLE || { fa: 'ویکی زمردین', en: 'Emerald Wiki' },
+        defaultLanguage: cfg.DEFAULT_LANGUAGE || 'fa', languages: cfg.LANGUAGES || ['fa','en'],
+        homePage: cfg.HOME_PAGE || 'home', title: cfg.SITE_TITLE || { fa:'ویکی زمردین', en:'Emerald Wiki' },
       };
-
-      fs.writeFileSync(path.join(dist, 'config.js'),
-        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`);
-
+      fs.writeFileSync(path.join(dist, 'config.js'), `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`);
       const idx = path.join(dist, 'index.html');
       let html = fs.readFileSync(idx, 'utf-8');
       html = html.replace('</head>', '  <script src="./config.js" defer></script>\n  </head>');
       fs.writeFileSync(idx, html);
-
       console.log(`  ✅ dist/config.js   (password → SHA‑256 hash)`);
       console.log(`  ✅ dist/pages/      (${files.length} .md files)`);
     },
@@ -94,22 +85,13 @@ function emitFilesPlugin() {
 }
 
 function fileProtocolPlugin() {
-  return {
-    name: 'file-protocol',
-    transformIndexHtml: {
-      order: 'post',
-      handler(html) {
-        return html.replace(/type="module"/g, 'defer').replace(/\scrossorigin(?:="[^"]*")?/g, '');
-      },
-    },
-  };
+  return { name:'file-protocol', transformIndexHtml:{ order:'post', handler(h){ return h.replace(/type="module"/g,'defer').replace(/\scrossorigin(?:="[^"]*")?/g,''); } } };
 }
 
 export default defineConfig({
   plugins: [svelte(), wikiContentPlugin(), emitFilesPlugin(), fileProtocolPlugin()],
   base: './',
-  build: {
-    outDir: 'dist', assetsDir: 'assets', cssCodeSplit: false, minify: 'esbuild',
-    rollupOptions: { output: { format: 'iife', inlineDynamicImports: true, manualChunks: undefined } },
+  build: { outDir:'dist', assetsDir:'assets', cssCodeSplit:false, minify:'esbuild',
+    rollupOptions: { output: { format:'iife', inlineDynamicImports:true, manualChunks:undefined } },
   },
 });

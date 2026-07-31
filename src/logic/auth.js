@@ -1,5 +1,5 @@
 import { sha256 } from './crypto.js';
-import { ADMIN_EMAIL, ADMIN_PASSWORD_HASH } from '../config.js';
+import { ADMIN_EMAIL, ADMIN_PASSWORD } from '../config.js';
 
 const AUTH_KEY = 'emerald-wiki-session';
 
@@ -14,11 +14,17 @@ function setStored(email) {
 }
 function clearStored() { if (typeof window !== 'undefined') sessionStorage.removeItem(AUTH_KEY); }
 
+async function expectedHash() {
+  const cfg = window.__EMERALD_CONFIG__;
+  if (cfg?.admin?.passwordHash) return cfg.admin.passwordHash;
+  return sha256(ADMIN_PASSWORD);
+}
+
 export async function signIn(email, password) {
-  if (!ADMIN_EMAIL || !ADMIN_PASSWORD_HASH) return { error: 'تنظیمات ادمین یافت نشد' };
+  if (!ADMIN_EMAIL) return { error: 'تنظیمات ادمین یافت نشد' };
   if (email !== ADMIN_EMAIL) return { error: 'ورود ناموفق' };
   const hash = await sha256(password);
-  if (hash !== ADMIN_PASSWORD_HASH) return { error: 'ورود ناموفق' };
+  if (hash !== await expectedHash()) return { error: 'ورود ناموفق' };
   setStored(email);
   return { user: { email } };
 }

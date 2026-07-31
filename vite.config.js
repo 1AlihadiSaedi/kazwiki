@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -48,11 +49,12 @@ function emitFilesPlugin() {
       let c = {};
       try { const m = await import(path.resolve(__dirname, 'src/config.js')); c = m; } catch {}
 
+      const passwordHash = c.ADMIN_PASSWORD
+        ? crypto.createHash('sha256').update(c.ADMIN_PASSWORD).digest('hex')
+        : '';
+
       const cfg = {
-        admin: {
-          email: c.ADMIN_EMAIL || 'root@root.com',
-          passwordHash: c.ADMIN_PASSWORD_HASH || '09a03e634a5691c2c300bb1507ceaac5222031b3574a4a7b0d0dd3e86162e355',
-        },
+        admin: { email: c.ADMIN_EMAIL || 'root@root.com', passwordHash },
         defaultLanguage: c.DEFAULT_LANGUAGE || 'fa',
         languages: c.LANGUAGES || ['fa', 'en'],
         homePage: c.HOME_PAGE || 'home',
@@ -63,7 +65,7 @@ function emitFilesPlugin() {
       fs.writeFileSync(path.join(dist, 'config.js'),
         `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(cfg)};})();`);
 
-      console.log(`  ✅ dist/config.js  (SHA‑256 hashed)`);
+      console.log(`  ✅ dist/config.js  (admin password → SHA‑256 hash)`);
       console.log(`  ✅ dist/pages/     (${files.length} .md files)`);
     },
   };

@@ -1,17 +1,32 @@
 /**
  * wiki.js – Wiki engine: Markdown parser + page loader
- *
- * PROD:    reads from window.__EMERALD_PAGES__ (dist/pages.js)
- * DEV:     reads from virtual:wiki-content (vite plugin)
- * Parses Markdown to HTML with a lightweight custom parser.
- * No external Markdown library dependency – keeps bundle tiny.
  */
-
 import pageModules from 'virtual:wiki-content';
 
 const pages = (typeof window !== 'undefined' && window.__EMERALD_PAGES__)
   ? window.__EMERALD_PAGES__
   : pageModules;
+
+export const liveCache = {};
+
+export async function fetchLiveContent(slug, lang) {
+  const key = `${slug}.${lang}`;
+  const urls = [
+    `/src/wiki-content/${slug}.${lang}.md`,
+    `/pages/${slug}.${lang}.md`
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const text = await res.text();
+        liveCache[key] = text;
+        return text;
+      }
+    } catch {}
+  }
+  return null;
+}
 
 export function getPageIndex() {
   const index = [];
@@ -30,6 +45,8 @@ export function getPageIndex() {
 }
 
 export function getPageContent(slug, lang) {
+  const key = `${slug}.${lang}`;
+  if (liveCache[key]) return liveCache[key];
   const targetPath = `/src/wiki-content/${slug}.${lang}.md`;
   if (pages[targetPath]) return pages[targetPath];
   const fallbackPath = `/src/wiki-content/${slug}.fa.md`;
@@ -88,7 +105,7 @@ export function getAllSlugs() {
   const index = getPageIndex();
   const slugs = {};
   for (const page of index) {
-    if (!slugs[page.slug]) slugs[page.slug] = { slug: page.slug, titles: {} };
+    if (!slugs[page.slug]) { slugs[page.slug] = { slug: page.slug, titles: {} }; }
     slugs[page.slug].titles[page.lang] = page.title;
   }
   return Object.values(slugs);

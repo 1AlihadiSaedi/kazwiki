@@ -1,6 +1,6 @@
 <script>
   import { t } from '../logic/i18n.js';
-  import { getPageContent, parseMarkdown } from '../logic/wiki.js';
+  import { getPageContent, parseMarkdown, fetchLiveContent } from '../logic/wiki.js';
   let { slug='home', lang='fa' } = $props();
   let rawMarkdown=$derived(getPageContent(slug,lang)||'');
   let editorContent=$state('');
@@ -8,7 +8,13 @@
   let mode=$state('write');
   let saving=$state(false);
   let toast=$state(null);
-  $effect(()=>{editorContent=rawMarkdown});
+
+  $effect(() => {
+    editorContent = getPageContent(slug, lang) || '';
+    fetchLiveContent(slug, lang).then(content => {
+      if (content) editorContent = content;
+    });
+  });
 
   async function saveToFile(){
     saving=true;

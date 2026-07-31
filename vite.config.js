@@ -9,19 +9,42 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function wikiContentPlugin() {
   const V = 'virtual:wiki-content', R = '\0' + V;
+  const contentDir = path.resolve(__dirname, 'src/wiki-content');
+
   return {
     name: 'wiki-content',
     resolveId(id) { if (id === V) return R; },
     load(id) {
       if (id === R) {
-        const d = path.resolve(__dirname, 'src/wiki-content');
         let files = [];
-        try { files = fs.readdirSync(d).filter(f => f.endsWith('.md')); } catch {}
+        try { files = fs.readdirSync(contentDir).filter(f => f.endsWith('.md')); } catch {}
         const pages = {};
         for (const f of files)
-          pages[`/src/wiki-content/${f}`] = fs.readFileSync(path.join(d, f), 'utf-8');
+          pages[`/src/wiki-content/${f}`] = fs.readFileSync(path.join(contentDir, f), 'utf-8');
         return `const data=${JSON.stringify(pages)};export default data;`;
       }
+    },
+
+    configureServer(server) {
+      server.middlewares.use('/api/save', (req, res, next) => {
+        if (req.method !== 'POST') return next();
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+          try {
+            const { slug, lang, content } = JSON.parse(body);
+            if (!slug || !lang || content == null) throw new Error('missing fields');
+            const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
+            const file = path.join(contentDir, `${safe}.${lang}.md`);
+            fs.writeFileSync(file, content, 'utf-8');
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md` }));
+          } catch (e) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ ok: false, error: e.message }));
+          }
+        });
+      });
     },
   };
 }

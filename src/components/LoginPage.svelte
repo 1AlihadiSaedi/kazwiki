@@ -7,18 +7,13 @@
   let error = $state('');
   let loading = $state(false);
   async function handleLogin(e) {
-    e.preventDefault();
-    error = '';
-    loading = true;
+    e.preventDefault(); error = ''; loading = true;
     try {
       const result = await signIn(username, password);
       if (result.error) { error = result.error; loading = false; return; }
       window.location.hash = '#/home';
       window.location.reload();
-    } catch (err) {
-      loading = false;
-      error = t(lang, 'loginFailed');
-    }
+    } catch (err) { loading = false; error = t(lang, 'loginFailed'); }
   }
 </script>
 <div class="login-page">
@@ -28,11 +23,13 @@
     <form class="login-form" onsubmit={handleLogin}>
       <div class="form-group">
         <label class="form-label" for="login-user">{t(lang, 'username')}</label>
-        <input id="login-user" type="text" class="form-input" autocomplete="username" placeholder="root" bind:value={username} required dir="ltr" />
+        <input id="login-user" type="text" class="form-input" autocomplete="username"
+          placeholder="" bind:value={username} required dir="ltr" />
       </div>
       <div class="form-group">
         <label class="form-label" for="login-pass">{t(lang, 'password')}</label>
-        <input id="login-pass" type="password" class="form-input" autocomplete="current-password" placeholder="••••••••" bind:value={password} required dir="ltr" />
+        <input id="login-pass" type="password" class="form-input" autocomplete="current-password"
+          placeholder="••••••••" bind:value={password} required dir="ltr" />
       </div>
       {#if error}
         <div class="form-error">

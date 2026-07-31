@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import fs from 'node:fs';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -39,29 +38,32 @@ function emitFilesPlugin() {
       const dist = path.resolve(__dirname, 'dist');
       const pagesDir = path.join(dist, 'pages');
       fs.mkdirSync(pagesDir, { recursive: true });
+
       const srcDir = path.resolve(__dirname, 'src/wiki-content');
       let files = [];
       try { files = fs.readdirSync(srcDir).filter(f => f.endsWith('.md')); } catch {}
       for (const f of files)
         fs.copyFileSync(path.join(srcDir, f), path.join(pagesDir, f));
-      let preConfig = {};
-      try {
-        const mod = await import(path.resolve(__dirname, 'config.js'));
-        preConfig = mod.default || mod;
-      } catch (e) { console.warn('  ⚠️  config.js not found — using defaults'); }
-      const passwordHash = preConfig?.admin?.password
-        ? crypto.createHash('sha256').update(preConfig.admin.password).digest('hex') : '';
-      const publicConfig = {
-        admin: { email: preConfig?.admin?.email || '', passwordHash },
-        defaultLanguage: preConfig?.defaultLanguage || 'fa',
-        languages: preConfig?.languages || ['fa', 'en'],
-        homePage: preConfig?.homePage || 'home',
-        title: preConfig?.title || { fa: 'ویکی زمردین', en: 'Emerald Wiki' },
-        description: preConfig?.description || { fa: '', en: '' },
+
+      let c = {};
+      try { const m = await import(path.resolve(__dirname, 'src/config.js')); c = m; } catch {}
+
+      const cfg = {
+        admin: {
+          email: c.ADMIN_EMAIL || 'root@root.com',
+          passwordHash: c.ADMIN_PASSWORD_HASH || '09a03e634a5691c2c300bb1507ceaac5222031b3574a4a7b0d0dd3e86162e355',
+        },
+        defaultLanguage: c.DEFAULT_LANGUAGE || 'fa',
+        languages: c.LANGUAGES || ['fa', 'en'],
+        homePage: c.HOME_PAGE || 'home',
+        title: c.SITE_TITLE || { fa: 'ویکی زمردین', en: 'Emerald Wiki' },
+        description: c.SITE_DESCRIPTION || { fa: '', en: '' },
       };
+
       fs.writeFileSync(path.join(dist, 'config.js'),
-        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(publicConfig)};})();`);
-      console.log(`  ✅ dist/config.js  (SHA-256 hashed admin password)`);
+        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(cfg)};})();`);
+
+      console.log(`  ✅ dist/config.js  (SHA‑256 hashed)`);
       console.log(`  ✅ dist/pages/     (${files.length} .md files)`);
     },
   };

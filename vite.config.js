@@ -6,11 +6,10 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const contentDir = path.resolve(__dirname, 'src/wiki-content');
 
 function wikiContentPlugin() {
   const V = 'virtual:wiki-content', R = '\0' + V;
-  const contentDir = path.resolve(__dirname, 'src/wiki-content');
-
   return {
     name: 'wiki-content',
     resolveId(id) { if (id === V) return R; },
@@ -24,27 +23,30 @@ function wikiContentPlugin() {
         return `const data=${JSON.stringify(pages)};export default data;`;
       }
     },
-
     configureServer(server) {
-      server.middlewares.use('/api/save', (req, res, next) => {
-        if (req.method !== 'POST') return next();
-        let body = '';
-        req.on('data', chunk => body += chunk);
-        req.on('end', () => {
-          try {
-            const { slug, lang, content } = JSON.parse(body);
-            if (!slug || !lang || content == null) throw new Error('missing fields');
-            const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
-            const file = path.join(contentDir, `${safe}.${lang}.md`);
-            fs.writeFileSync(file, content, 'utf-8');
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md` }));
-          } catch (e) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: false, error: e.message }));
-          }
-        });
-      });
+      const layer = {
+        route: '',
+        handle(req, res, next) {
+          if (req.url !== '/api/save' || req.method !== 'POST') return next();
+          let body = '';
+          req.on('data', chunk => body += chunk);
+          req.on('end', () => {
+            try {
+              const { slug, lang, content } = JSON.parse(body);
+              if (!slug || !lang || content == null) throw new Error('missing fields');
+              const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
+              const file = path.join(contentDir, `${safe}.${lang}.md`);
+              fs.writeFileSync(file, content, 'utf-8');
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md` }));
+            } catch (e) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ ok: false, error: e.message }));
+            }
+          });
+        }
+      };
+      server.middlewares.stack.unshift(layer);
     },
   };
 }
@@ -61,11 +63,10 @@ function emitFilesPlugin() {
       const pagesDir = path.join(dist, 'pages');
       fs.mkdirSync(pagesDir, { recursive: true });
 
-      const srcDir = path.resolve(__dirname, 'src/wiki-content');
       let files = [];
-      try { files = fs.readdirSync(srcDir).filter(f => f.endsWith('.md')); } catch {}
+      try { files = fs.readdirSync(contentDir).filter(f => f.endsWith('.md')); } catch {}
       for (const f of files)
-        fs.copyFileSync(path.join(srcDir, f), path.join(pagesDir, f));
+        fs.copyFileSync(path.join(contentDir, f), path.join(pagesDir, f));
 
       const hash = cfg.ADMIN_PASSWORD
         ? crypto.createHash('sha256').update(cfg.ADMIN_PASSWORD).digest('hex') : '';

@@ -2,51 +2,41 @@
   import { t } from '../logic/i18n.js';
   import { getPageContent, getPageIndex, parseMarkdown, fetchLiveContent } from '../logic/wiki.js';
   let { slug='home', lang='fa' } = $props();
-  let liveMarkdown = $state('');
-  let loading = $state(true);
-
-  $effect(() => {
-    loading = true;
-    liveMarkdown = getPageContent(slug, lang) || '';
-    fetchLiveContent(slug, lang).then(content => {
-      if (content) liveMarkdown = content;
-      loading = false;
-    });
-  });
-
-  let htmlContent = $derived(liveMarkdown ? parseMarkdown(liveMarkdown) : null);
-  let pageIndex = $derived(getPageIndex());
-  let pageTitle = $derived(
-    pageIndex.find((p) => p.slug === slug && p.lang === lang)?.title ||
-    pageIndex.find((p) => p.slug === slug)?.title || slug
-  );
+  let liveMarkdown=$state('');
+  let loading=$state(true);
+  $effect(()=>{loading=true;liveMarkdown=getPageContent(slug,lang)||'';fetchLiveContent(slug,lang).then(c=>{if(c)liveMarkdown=c;loading=false})});
+  let htmlContent=$derived(liveMarkdown?parseMarkdown(liveMarkdown):null);
+  let pageIndex=$derived(getPageIndex());
+  let pageTitle=$derived(pageIndex.find(p=>p.slug===slug&&p.lang===lang)?.title||pageIndex.find(p=>p.slug===slug)?.title||slug);
 </script>
 
-<article class="wiki-page">
+<article class="wp">
   {#if htmlContent}
-    <header class="page-header"><h1 class="page-heading">{pageTitle}</h1></header>
-    <div class="page-content">{@html htmlContent}</div>
+    <header class="ph"><h1 class="pt">{pageTitle}</h1></header><div class="pc">{@html htmlContent}</div>
   {:else if loading}
-    <div class="page-loading"><div class="spinner"></div></div>
+    <div class="pl"><div class="spinner"></div></div>
   {:else}
-    <div class="page-empty">
-      <div class="empty-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-      </div>
-      <h2>{t(lang,'pageNotFound')}</h2><p><a href="#/home">{t(lang,'backToHome')}</a></p>
+    <div class="pe">
+      <div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="64" height="64"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+      <h2>{t(lang,'pageNotFound')}</h2>
+      <div class="pe-a"><a href="#/home">{t(lang,'backToHome')}</a><a href="#/edit/{slug}" class="cta">{t(lang,'createPage')}</a></div>
     </div>
   {/if}
 </article>
 
 <style>
-  .wiki-page{max-width:800px;width:100%;padding:2rem;animation:pi 300ms ease}@keyframes pi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-  .page-header{margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--color-border)}
-  .page-heading{margin:0;font-size:var(--font-size-3xl);color:var(--color-accent)}
-  .page-content{line-height:1.85;color:var(--color-text-primary)}
-  .page-loading{display:flex;justify-content:center;align-items:center;min-height:50vh}
+  .wp{max-width:800px;width:100%;padding:2rem;animation:pi 300ms ease}@keyframes pi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .ph{margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--color-border)}
+  .pt{margin:0;font-size:var(--font-size-3xl);color:var(--color-accent)}
+  .pc{line-height:1.85;color:var(--color-text-primary)}
+  .pl{display:flex;justify-content:center;align-items:center;min-height:50vh}
   .spinner{width:32px;height:32px;border:3px solid var(--color-border);border-top-color:var(--color-accent);border-radius:50%;animation:sp 0.8s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
-  .page-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;text-align:center;gap:1rem}
-  .empty-icon{color:var(--color-text-muted)}
-  .page-empty h2{color:var(--color-text-secondary);margin:0}
-  @media(max-width:640px){.wiki-page{padding:1rem}.page-heading{font-size:var(--font-size-2xl)}}
+  .pe{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;text-align:center;gap:1.25rem}
+  .ei{color:var(--color-text-muted)}.pe h2{color:var(--color-text-secondary);margin:0}
+  .pe-a{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
+  .pe-a a{padding:0.55rem 1.5rem;border-radius:var(--radius-md);font-weight:600;text-decoration:none;transition:all var(--transition-fast);border:1px solid var(--color-border);color:var(--color-text-secondary)}
+  .pe-a a:hover{background:var(--color-bg-hover)}
+  .pe-a a.cta{background:var(--color-accent);color:var(--color-accent-text);border-color:var(--color-accent)}
+  .pe-a a.cta:hover{background:var(--color-accent-dark)}
+  @media(max-width:640px){.wp{padding:1rem}.pt{font-size:var(--font-size-2xl)}}
 </style>

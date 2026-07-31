@@ -7,8 +7,8 @@ function load() {
   try { const r = sessionStorage.getItem(AUTH_KEY); return r ? JSON.parse(r) : null; }
   catch { return null; }
 }
-function save(u, n) {
-  sessionStorage.setItem(AUTH_KEY, JSON.stringify({ username: u, displayName: n, ts: Date.now() }));
+function save(u) {
+  sessionStorage.setItem(AUTH_KEY, JSON.stringify({ username: u, displayName: ADMIN_DISPLAY_NAME, ts: Date.now() }));
 }
 function clear() { sessionStorage.removeItem(AUTH_KEY); }
 
@@ -18,12 +18,11 @@ async function expectedHash() {
   return sha256(ADMIN_PASSWORD);
 }
 
-export async function signIn(username, name, password) {
+export async function signIn(username, password) {
   if (!ADMIN_USERNAME) return { error: 'تنظیمات ادمین یافت نشد' };
   if (username !== ADMIN_USERNAME) return { error: 'ورود ناموفق' };
-  if (name !== ADMIN_DISPLAY_NAME) return { error: 'ورود ناموفق' };
   if (await sha256(password) !== await expectedHash()) return { error: 'ورود ناموفق' };
-  save(username, ADMIN_DISPLAY_NAME);
+  save(username);
   return { user: { username, displayName: ADMIN_DISPLAY_NAME } };
 }
 

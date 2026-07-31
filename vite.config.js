@@ -27,30 +27,12 @@ function wikiContentPlugin() {
 }
 
 function emitFilesPlugin() {
-  let srcConfig = {};
-
+  let cfg = {};
   return {
     name: 'emit-files',
-    configResolved() {
-      try {
-        const p = path.resolve(__dirname, 'src/config.js');
-        const code = fs.readFileSync(p, 'utf-8');
-        const extract = (name) => {
-          const re = new RegExp(`export const ${name} = (.+?);`, 's');
-          const m = code.match(re);
-          if (!m) return null;
-          try { return eval('(' + m[1] + ')'); } catch { return null; }
-        };
-        srcConfig.ADMIN_USERNAME = extract('ADMIN_USERNAME') || 'root';
-        srcConfig.ADMIN_DISPLAY_NAME = extract('ADMIN_DISPLAY_NAME') || 'Saedi';
-        srcConfig.ADMIN_PASSWORD = extract('ADMIN_PASSWORD') || 'RootRootRoot';
-        srcConfig.DEFAULT_LANGUAGE = extract('DEFAULT_LANGUAGE') || 'fa';
-        srcConfig.LANGUAGES = extract('LANGUAGES') || ['fa', 'en'];
-        srcConfig.HOME_PAGE = extract('HOME_PAGE') || 'home';
-        srcConfig.SITE_TITLE = extract('SITE_TITLE') || { fa: 'ویکی زمردین', en: 'Emerald Wiki' };
-      } catch {}
+    async buildStart() {
+      try { cfg = await import(path.resolve(__dirname, 'src/config.js')); } catch {}
     },
-
     async closeBundle() {
       const dist = path.resolve(__dirname, 'dist');
       const pagesDir = path.join(dist, 'pages');
@@ -62,25 +44,24 @@ function emitFilesPlugin() {
       for (const f of files)
         fs.copyFileSync(path.join(srcDir, f), path.join(pagesDir, f));
 
-      const passwordHash = srcConfig.ADMIN_PASSWORD
-        ? crypto.createHash('sha256').update(srcConfig.ADMIN_PASSWORD).digest('hex')
-        : '';
+      const hash = cfg.ADMIN_PASSWORD
+        ? crypto.createHash('sha256').update(cfg.ADMIN_PASSWORD).digest('hex') : '';
 
-      const cfg = {
-        admin: { username: srcConfig.ADMIN_USERNAME, passwordHash },
-        defaultLanguage: srcConfig.DEFAULT_LANGUAGE,
-        languages: srcConfig.LANGUAGES,
-        homePage: srcConfig.HOME_PAGE,
-        title: srcConfig.SITE_TITLE,
+      const out = {
+        admin: { username: cfg.ADMIN_USERNAME || 'root', passwordHash: hash },
+        defaultLanguage: cfg.DEFAULT_LANGUAGE || 'fa',
+        languages: cfg.LANGUAGES || ['fa', 'en'],
+        homePage: cfg.HOME_PAGE || 'home',
+        title: cfg.SITE_TITLE || { fa: 'ویکی زمردین', en: 'Emerald Wiki' },
       };
 
       fs.writeFileSync(path.join(dist, 'config.js'),
-        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(cfg)};})();`);
+        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`);
 
-      const indexPath = path.join(dist, 'index.html');
-      let html = fs.readFileSync(indexPath, 'utf-8');
+      const idx = path.join(dist, 'index.html');
+      let html = fs.readFileSync(idx, 'utf-8');
       html = html.replace('</head>', '  <script src="./config.js" defer></script>\n  </head>');
-      fs.writeFileSync(indexPath, html);
+      fs.writeFileSync(idx, html);
 
       console.log(`  ✅ dist/config.js   (password → SHA‑256 hash)`);
       console.log(`  ✅ dist/pages/      (${files.length} .md files)`);

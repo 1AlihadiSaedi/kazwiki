@@ -15,17 +15,17 @@ const translations = {
     edit: 'ویرایش',
     editorTitle: 'ویرایشگر محلی',
     editorNote: 'این یک ویرایشگر محلی است. تغییرات فقط در مرورگر شما ذخیره می‌شود.',
-    downloadMarkdown: 'دانلود فایل مارک‌دون',
     preview: 'پیش‌نمایش',
     write: 'نوشتن',
     pageNotFound: 'صفحه مورد نظر یافت نشد.',
     backToHome: 'بازگشت به صفحه اصلی',
     toggleSidebar: 'باز کردن منو',
     closeSidebar: 'بستن منو',
-    footerText: 'ساخته شده با Svelte — میزبان استاتیک',
+    footerText: 'ساخته شده با Svelte',
     loginTitle: 'ورود به بخش مدیریت',
     login: 'ورود',
-    email: 'ایمیل',
+    username: 'نام کاربری',
+    secretName: 'نام مخفی',
     password: 'رمز عبور',
     loggingIn: 'در حال ورود...',
     settings: 'تنظیمات',
@@ -47,10 +47,7 @@ const translations = {
     profileNotFound: 'پروفایل یافت نشد',
     logout: 'خروج',
     confirmDelete: 'آیا از حذف کاربر اطمینان دارید؟',
-    userDeleted: 'کاربر با موفقیت حذف شد',
-    userCreated: 'کاربر با موفقیت ایجاد شد',
-    roleUpdated: 'نقش کاربر با موفقیت بروزرسانی شد',
-    loginFailed: 'ورود ناموفق. ایمیل یا رمز عبور اشتباه است.',
+    loginFailed: 'ورود ناموفق',
   },
   en: {
     siteTitle: 'Emerald Wiki',
@@ -66,17 +63,17 @@ const translations = {
     edit: 'Edit',
     editorTitle: 'Local Editor',
     editorNote: 'This is a local editor. Changes are saved only in your browser.',
-    downloadMarkdown: 'Download Markdown',
     preview: 'Preview',
     write: 'Write',
     pageNotFound: 'Page not found.',
     backToHome: 'Back to Home',
     toggleSidebar: 'Open Menu',
     closeSidebar: 'Close Menu',
-    footerText: 'Built with Svelte — Static Hosting',
+    footerText: 'Built with Svelte',
     loginTitle: 'Admin Login',
     login: 'Login',
-    email: 'Email',
+    username: 'Username',
+    secretName: 'Secret Name',
     password: 'Password',
     loggingIn: 'Logging in...',
     settings: 'Settings',
@@ -98,11 +95,13 @@ const translations = {
     profileNotFound: 'Profile not found',
     logout: 'Logout',
     confirmDelete: 'Are you sure you want to delete user',
-    userDeleted: 'User deleted successfully',
-    userCreated: 'User created successfully',
-    roleUpdated: 'Role updated successfully',
-    loginFailed: 'Login failed. Invalid email or password.',
+    loginFailed: 'Login failed',
   },
+};
+
+const LANG_META = {
+  fa: { label: 'فارسی', dir: 'rtl' },
+  en: { label: 'English', dir: 'ltr' },
 };
 
 export function t(lang, key) {
@@ -110,17 +109,8 @@ export function t(lang, key) {
   return dict[key] || translations[DEFAULT_LANGUAGE]?.[key] || translations.fa[key] || key;
 }
 
-const LANG_META = {
-  fa: { label: 'فارسی', dir: 'rtl' },
-  en: { label: 'English', dir: 'ltr' },
-};
-
 export function getLanguages() {
-  return LANGUAGES
-    .filter(code => LANG_META[code])
-    .map(code => ({ code, ...LANG_META[code] }));
+  return LANGUAGES.filter(code => LANG_META[code]).map(code => ({ code, ...LANG_META[code] }));
 }
 
-export function getDirection(lang) {
-  return lang === 'en' ? 'ltr' : 'rtl';
-}
+export function getDirection(lang) { return lang === 'en' ? 'ltr' : 'rtl'; }

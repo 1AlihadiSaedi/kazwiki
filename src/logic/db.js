@@ -1,11 +1,11 @@
-import { ADMIN_EMAIL } from '../config.js';
+import { ADMIN_USERNAME, ADMIN_DISPLAY_NAME } from '../config.js';
 
 export async function getMyProfile() {
-  return { email: ADMIN_EMAIL, display_name: ADMIN_EMAIL, role: 'admin' };
+  return { username: ADMIN_USERNAME, display_name: ADMIN_DISPLAY_NAME, role: 'admin' };
 }
 
 export async function getAllProfiles() {
-  return [{ email: ADMIN_EMAIL, display_name: ADMIN_EMAIL, role: 'admin' }];
+  return [await getMyProfile()];
 }
 
 export async function updateProfileRole() {

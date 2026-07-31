@@ -8,28 +8,62 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const contentDir = path.resolve(__dirname, 'src/wiki-content');
 
-function wikiContentPlugin() {
+function wikiPlugin() {
   const V = 'virtual:wiki-content', R = '\0' + V;
+
+  function loadAll(ctx) {
+    let files = [];
+    try { files = fs.readdirSync(contentDir).filter(f => f.endsWith('.md')); } catch {}
+    const pages = {};
+    for (const f of files) {
+      const fp = path.join(contentDir, f);
+      ctx?.addWatchFile?.(fp);
+      pages[`/src/wiki-content/${f}`] = fs.readFileSync(fp, 'utf-8');
+    }
+    return pages;
+  }
+
+  function addSaveEndpoint(server) {
+    server.middlewares.use((req, res, next) => {
+      if (req.method !== 'POST' || req.url !== '/api/save') return next();
+      let body = '';
+      req.on('data', c => body += c);
+      req.on('end', () => {
+        try {
+          const { slug, lang, content } = JSON.parse(body);
+          const safe = slug.replace(/[^a-zA-Z0-9_-]/g, '');
+          const file = path.join(contentDir, `${safe}.${lang}.md`);
+          fs.writeFileSync(file, content, 'utf-8');
+          const distFile = path.resolve(__dirname, 'dist', 'pages', `${safe}.${lang}.md`);
+          try { fs.mkdirSync(path.dirname(distFile), { recursive: true }); fs.copyFileSync(file, distFile); } catch {}
+          const verified = fs.readFileSync(file, 'utf-8') === content;
+          console.log(`  💾 Saved: ${safe}.${lang}.md  (${content.length}B, verified=${verified})`);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: true, file: `${safe}.${lang}.md`, verified }));
+        } catch (e) {
+          console.error('  ❌ Save:', e.message);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+      });
+    });
+  }
+
   return {
-    name: 'wiki-content',
+    name: 'wiki',
     resolveId(id) { if (id === V) return R; },
     load(id) {
-      if (id === R) {
-        let files = [];
-        try { files = fs.readdirSync(contentDir).filter(f => f.endsWith('.md')); } catch {}
-        const pages = {};
-        for (const f of files)
-          pages[`/src/wiki-content/${f}`] = fs.readFileSync(path.join(contentDir, f), 'utf-8');
-        return `const data=${JSON.stringify(pages)};export default data;`;
-      }
+      if (id === R) return `const data=${JSON.stringify(loadAll(this))};export default data;`;
     },
+    configureServer: addSaveEndpoint,
+    configurePreviewServer: addSaveEndpoint,
   };
 }
 
-function emitFilesPlugin() {
+function emitPlugin() {
   let cfg = {};
   return {
-    name: 'emit-files',
+    name: 'emit',
     async buildStart() {
       try { cfg = await import(path.resolve(__dirname, 'src/config.js')); } catch {}
     },
@@ -62,7 +96,7 @@ function fileProtocolPlugin() {
 }
 
 export default defineConfig({
-  plugins: [svelte(), wikiContentPlugin(), emitFilesPlugin(), fileProtocolPlugin()],
+  plugins: [svelte(), wikiPlugin(), emitPlugin(), fileProtocolPlugin()],
   base: './',
   build: { outDir:'dist', assetsDir:'assets', cssCodeSplit:false, minify:'esbuild',
     rollupOptions: { output: { format:'iife', inlineDynamicImports:true, manualChunks:undefined } },

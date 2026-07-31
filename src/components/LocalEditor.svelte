@@ -13,12 +13,15 @@
   async function saveToFile(){
     saving=true;
     try{
-      const r=await fetch('http://localhost:5174/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,lang,content:editorContent})});
+      const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug,lang,content:editorContent})});
       const d=await r.json();
-      toast={ok:d.ok,msg:d.ok?t(lang,'saved'):t(lang,'saveFailed')};
+      if(d.ok){
+        toast={ok:true,msg:t(lang,'saved')};
+        setTimeout(()=>{window.location.hash='#/wiki/'+slug;window.location.reload()},600);
+      }else{toast={ok:false,msg:t(lang,'saveFailed')}}
     }catch{toast={ok:false,msg:t(lang,'saveFailed')}}
     saving=false;
-    setTimeout(()=>toast=null,3500);
+    if(!toast?.ok)setTimeout(()=>toast=null,3500);
   }
 </script>
 
@@ -45,8 +48,7 @@
 {/if}
 
 <style>
-  .ec{max-width:1000px;width:100%;padding:1.5rem;animation:pi 300ms ease}
-  @keyframes pi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .ec{max-width:1000px;width:100%;padding:1.5rem;animation:pi 300ms ease}@keyframes pi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .eh{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:1rem}
   .et{font-size:var(--font-size-xl);margin:0;color:var(--color-accent)}
   .ea{display:flex;align-items:center;gap:0.75rem}
@@ -61,10 +63,8 @@
   .eb{border:1px solid var(--color-border);border-radius:var(--radius-md);overflow:hidden;min-height:60vh}
   .ta{width:100%;min-height:60vh;padding:1.25rem;border:none;background:var(--color-bg-primary);color:var(--color-text-primary);font-family:var(--font-mono);font-size:var(--font-size-sm);line-height:1.8;resize:vertical;outline:none;direction:ltr;text-align:left}
   .ep{padding:1.5rem 2rem;background:var(--color-bg-primary);line-height:1.85;min-height:60vh}
-  .sp{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spi 0.6s linear infinite}
-  @keyframes spi{to{transform:rotate(360deg)}}
+  .sp{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spi 0.6s linear infinite}@keyframes spi{to{transform:rotate(360deg)}}
   @media(max-width:640px){.ec{padding:1rem}.eh{flex-direction:column;align-items:flex-start}.ep{padding:1rem}}
-
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:0.65rem;padding:0.75rem 1.5rem;border-radius:var(--radius-lg);font-size:var(--font-size-sm);font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:9999;animation:ti 300ms ease;direction:rtl}
   @keyframes ti{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
   .toast--ok{background:#059669;color:#fff}

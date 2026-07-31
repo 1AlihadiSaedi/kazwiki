@@ -17,7 +17,7 @@
       const d=await r.json();
       if(d.ok){
         toast={ok:true,msg:t(lang,'saved')};
-        setTimeout(()=>{window.location.hash='#/wiki/'+slug;window.location.reload()},600);
+        setTimeout(()=>{window.location.hash='#'+slug+'?lang='+lang;window.location.reload()},600);
       }else{toast={ok:false,msg:t(lang,'saveFailed')}}
     }catch{toast={ok:false,msg:t(lang,'saveFailed')}}
     saving=false;

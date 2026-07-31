@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,7 +35,7 @@ function emitFilesPlugin() {
         return html.replace('</head>', '  <script src="./config.js" defer></script>\n  </head>');
       },
     },
-    closeBundle() {
+    async closeBundle() {
       const dist = path.resolve(__dirname, 'dist');
       const pagesDir = path.join(dist, 'pages');
       fs.mkdirSync(pagesDir, { recursive: true });
@@ -45,28 +46,35 @@ function emitFilesPlugin() {
       for (const f of files)
         fs.copyFileSync(path.join(srcDir, f), path.join(pagesDir, f));
 
-      let siteConfig = {};
+      let preConfig = {};
       try {
-        siteConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'site.config.json'), 'utf-8'));
-      } catch {}
+        const mod = await import(path.resolve(__dirname, 'config.js'));
+        preConfig = mod.default || mod;
+      } catch (e) {
+        console.warn('  ⚠️  config.js not found — using defaults');
+      }
 
-      let SUPABASE_URL = '', SUPABASE_ANON_KEY = '';
-      try {
-        const env = fs.readFileSync(path.resolve(__dirname, '.env'), 'utf-8');
-        const u = env.match(/VITE_SUPABASE_URL=(.+)/);
-        const k = env.match(/VITE_SUPABASE_ANON_KEY=(.+)/);
-        if (u) SUPABASE_URL = u[1].trim();
-        if (k) SUPABASE_ANON_KEY = k[1].trim();
-      } catch {}
+      const passwordHash = preConfig?.admin?.password
+        ? crypto.createHash('sha256').update(preConfig.admin.password).digest('hex')
+        : '';
 
-      const config = { ...siteConfig, supabase: { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY } };
+      const publicConfig = {
+        admin: { email: preConfig?.admin?.email || '', passwordHash },
+        defaultLanguage: preConfig?.defaultLanguage || 'fa',
+        languages: preConfig?.languages || ['fa', 'en'],
+        homePage: preConfig?.homePage || 'home',
+        title: preConfig?.title || { fa: 'ویکی زمردین', en: 'Emerald Wiki' },
+        description: preConfig?.description || { fa: '', en: '' },
+        supabase: preConfig?.supabase || { url: '', anonKey: '' },
+      };
+
       fs.writeFileSync(
         path.join(dist, 'config.js'),
-        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(config)};})();`
+        `(function(){window.__EMERALD_CONFIG__=${JSON.stringify(publicConfig)};})();`
       );
 
-      console.log(`  ✅ dist/pages/  (${files.length} .md files)`);
-      console.log('  ✅ dist/config.js');
+      console.log(`  ✅ dist/config.js  (SHA‑256 hashed admin password)`);
+      console.log(`  ✅ dist/pages/     (${files.length} .md files)`);
     },
   };
 }

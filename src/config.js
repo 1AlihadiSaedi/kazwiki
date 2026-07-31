@@ -1,15 +1,17 @@
 const cfg = typeof window !== 'undefined' ? window.__EMERALD_CONFIG__ : null;
 
 export const SUPABASE_URL =
-  (cfg?.supabase?.url) || import.meta.env.VITE_SUPABASE_URL;
+  (cfg?.supabase?.url) || import.meta.env.VITE_SUPABASE_URL || '';
 
 export const SUPABASE_ANON_KEY =
-  (cfg?.supabase?.anonKey) || import.meta.env.VITE_SUPABASE_ANON_KEY;
+  (cfg?.supabase?.anonKey) || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 export function isSupabaseConfigured() {
   return !!(SUPABASE_URL && SUPABASE_ANON_KEY &&
     SUPABASE_URL !== 'https://xxxxxxxxxxxx.supabase.co');
 }
+
+export const ADMIN_EMAIL = cfg?.admin?.email || '';
 
 export const SITE_TITLE =
   cfg?.title || { fa: 'ویکی زمردین', en: 'Emerald Wiki' };

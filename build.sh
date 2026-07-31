@@ -5,32 +5,31 @@ echo "🟢 Emerald Wiki — Build Script"
 echo "==============================="
 echo ""
 
-# 1. Check for .env
-if [ ! -f .env ]; then
-  if [ -f .env.example ]; then
-    echo "⚠️  No .env file found. Creating one from .env.example..."
-    cp .env.example .env
+# 1. Check for config.js (pre-build config)
+if [ ! -f config.js ]; then
+  if [ -f config.example.js ]; then
+    echo "⚠️  config.js not found. Creating from config.example.js..."
+    cp config.example.js config.js
   else
-    echo "❌ No .env or .env.example found!"
+    echo "❌ No config.js or config.example.js found!"
     exit 1
   fi
   echo ""
-  echo "✏️  EDIT .env with your Supabase credentials (or leave as-is to skip auth):"
+  echo "✏️  EDIT config.js with your admin credentials and site settings:"
   echo ""
-  echo "   VITE_SUPABASE_URL=https://YOUR-PROJECT.supabase.co"
-  echo "   VITE_SUPABASE_ANON_KEY=eyJhbGciOi..."
+  echo "   admin.email    → your admin email"
+  echo "   admin.password → your admin password (hashed at build)"
   echo ""
   echo "   Then run:  ./build.sh"
   exit 1
 fi
 
-# 2. Check credentials — warn but continue
-URL=$(grep VITE_SUPABASE_URL .env | cut -d '=' -f2)
-if [ "$URL" = "https://xxxxxxxxxxxx.supabase.co" ] || [ -z "$URL" ]; then
-  echo "⚠️  SUPABASE_URL not configured (placeholder detected)"
-  echo "   Wiki will work fine, but login & editing will be unavailable."
-  echo "   To enable auth later, edit .env with real Supabase credentials."
-  echo ""
+# 2. Check for .env (optional — only needed for Supabase)
+if [ ! -f .env ]; then
+  if [ -f .env.example ]; then
+    cp .env.example .env
+    echo "ℹ️  .env created from .env.example (optional — Supabase only)"
+  fi
 fi
 
 # 3. Install & build
@@ -47,3 +46,5 @@ echo "   Output: dist/"
 echo "   Preview: npm run preview"
 echo ""
 echo "📤 Deploy: upload the dist/ folder to any static host."
+echo ""
+echo "🔐 Login:  #/login  →  email & password from config.js"

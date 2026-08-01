@@ -6,6 +6,12 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const contentDir=path.resolve(__dirname,'src/wiki-content');
+
+// ── Hashed admin cred file (regenerated at build time from config.js) ──
+const credsPath=path.resolve(__dirname,'.data','390eb3053a827f81.json');
+let hashedCreds={uh:'',ph:'',dn:'Admin'};
+try{hashedCreds=JSON.parse(fs.readFileSync(credsPath,'utf-8'))}catch{}
+
 function wikiPlugin(){
   const V='virtual:wiki-content',R='\0'+V;
   function loadAll(ctx){
@@ -72,11 +78,28 @@ function wikiPlugin(){
   }
   return{name:'wiki',resolveId(id){if(id===V)return R},load(id){if(id===R)return`const data=${JSON.stringify(loadAll(this))};export default data;`},configureServer:addMiddleware,configurePreviewServer:addMiddleware};
 }
+
 function emitPlugin(){
   let cfg={};
   return{
     name:'emit',
-    async buildStart(){try{cfg=await import(path.resolve(__dirname,'src/config.js'));for(const l of(cfg.LANGUAGES||['fa','en']))fs.mkdirSync(path.join(contentDir,l),{recursive:true})}catch{}},
+    async buildStart(){
+      try{
+        cfg=await import(path.resolve(__dirname,'src/config.js'));
+        for(const l of(cfg.LANGUAGES||['fa','en']))fs.mkdirSync(path.join(contentDir,l),{recursive:true});
+        // Regenerate hashed cred file from config.js
+        const hc={
+          uh:crypto.createHash('sha256').update(cfg.ADMIN_USERNAME||'root').digest('hex'),
+          ph:crypto.createHash('sha256').update(cfg.ADMIN_PASSWORD||'').digest('hex'),
+          dn:cfg.ADMIN_DISPLAY_NAME||'Admin'
+        };
+        const hf=path.resolve(__dirname,'.data','390eb3053a827f81.json');
+        fs.mkdirSync(path.dirname(hf),{recursive:true});
+        fs.writeFileSync(hf,JSON.stringify(hc));
+        hashedCreds=hc;
+        console.log('  🔐 Admin cred hashed & synced');
+      }catch{console.error('  ⚠️ buildStart error')}
+    },
     async closeBundle(){
       const dist=path.resolve(__dirname,'dist');let fc=0;
       try{
@@ -88,15 +111,26 @@ function emitPlugin(){
           for(const f of fs2){fs.copyFileSync(path.join(sd,f),path.join(dd,f));fc++}
         }
       }catch{}
-      const h=cfg.ADMIN_PASSWORD?crypto.createHash('sha256').update(cfg.ADMIN_PASSWORD).digest('hex'):'';
-      const out={admin:{username:cfg.ADMIN_USERNAME||'root',passwordHash:h},defaultLanguage:cfg.DEFAULT_LANGUAGE||'fa',languages:cfg.LANGUAGES||['fa','en'],homePage:cfg.HOME_PAGE||'home',title:cfg.SITE_TITLE||{fa:'ویکی زمردین',en:'Emerald Wiki'}};
+      // Only hashed values — never plain text
+      const out={
+        admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},
+        defaultLanguage:cfg.DEFAULT_LANGUAGE||'fa',languages:cfg.LANGUAGES||['fa','en'],
+        homePage:cfg.HOME_PAGE||'home',title:cfg.SITE_TITLE||{fa:'ویکی زمردین',en:'Emerald Wiki'}
+      };
       fs.writeFileSync(path.join(dist,'config.js'),`(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`);
       const idx=path.join(dist,'index.html');let html=fs.readFileSync(idx,'utf-8');
       html=html.replace('</head>','  <script src="./config.js" defer></script>\n  </head>');
       fs.writeFileSync(idx,html);
-      console.log(`  ✅ dist/config.js`);console.log(`  ✅ dist/pages/  (${fc} .md files)`);
+      console.log(`  ✅ dist/config.js (hashed only)`);console.log(`  ✅ dist/pages/  (${fc} .md files)`);
     }
   };
 }
+
 function fpPlugin(){return{name:'fp',transformIndexHtml:{order:'post',handler(h){return h.replace(/type="module"/g,'defer').replace(/\scrossorigin(?:="[^"]*")?/g,'')}}}}
-export default defineConfig({plugins:[svelte(),wikiPlugin(),emitPlugin(),fpPlugin()],base:'./',build:{outDir:'dist',assetsDir:'assets',cssCodeSplit:false,minify:'esbuild',rollupOptions:{output:{format:'iife',inlineDynamicImports:true,manualChunks:undefined}}}});
+
+export default defineConfig({
+  plugins:[svelte(),wikiPlugin(),emitPlugin(),fpPlugin()],
+  define:{__ADMIN_CREDS__:JSON.stringify(hashedCreds)},
+  base:'./',
+  build:{outDir:'dist',assetsDir:'assets',cssCodeSplit:false,minify:'esbuild',rollupOptions:{output:{format:'iife',inlineDynamicImports:true,manualChunks:undefined}}}
+});

@@ -10,7 +10,16 @@ const contentDir=path.resolve(__dirname,'src/wiki-content');
 // ── Hashed admin cred file (regenerated at build time from config.js) ──
 const credsPath=path.resolve(__dirname,'.data','390eb3053a827f81.json');
 let hashedCreds={uh:'',ph:'',dn:'Admin'};
+// Try pre-generated file first
 try{hashedCreds=JSON.parse(fs.readFileSync(credsPath,'utf-8'))}catch{}
+// ALWAYS compute from config.js (source of truth, works even without pre-generated file)
+try{
+  const cr=fs.readFileSync(path.resolve(__dirname,'src/config.js'),'utf-8');
+  const un=(cr.match(/ADMIN_USERNAME\s*=\s*'([^']*)'/)||[,'root'])[1];
+  const pw=(cr.match(/ADMIN_PASSWORD\s*=\s*'([^']*)'/)||[,''])[1];
+  const dn=(cr.match(/ADMIN_DISPLAY_NAME\s*=\s*'([^']*)'/)||[,'Admin'])[1];
+  hashedCreds={uh:crypto.createHash('sha256').update(un).digest('hex'),ph:crypto.createHash('sha256').update(pw).digest('hex'),dn};
+}catch{}
 
 function wikiPlugin(){
   const V='virtual:wiki-content',R='\0'+V;

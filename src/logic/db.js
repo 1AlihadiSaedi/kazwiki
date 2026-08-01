@@ -4,8 +4,16 @@ import adminCreds from 'virtual:admin-creds';
 const UK = 'emerald-wiki-users';
 const RK = 'emerald-wiki-roles';
 const IK = 'emerald-wiki-i18n';
+const VK = 'emerald-wiki-version';
+const CURRENT_VERSION = 2; // bump to force re-seed on schema changes
 
 function ensureSeeded() {
+  const storedVersion = parseInt(localStorage.getItem(VK) || '0', 10);
+  if (storedVersion < CURRENT_VERSION) {
+    localStorage.removeItem(UK);
+    localStorage.removeItem(RK);
+    localStorage.removeItem(IK);
+  }
   if (!localStorage.getItem(RK)) {
     localStorage.setItem(RK, JSON.stringify(DEFAULT_ROLES));
   }
@@ -22,6 +30,7 @@ function ensureSeeded() {
   if (!localStorage.getItem(IK)) {
     localStorage.setItem(IK, JSON.stringify(DEFAULT_TRANSLATIONS));
   }
+  localStorage.setItem(VK, String(CURRENT_VERSION));
 }
 if (typeof localStorage !== 'undefined') ensureSeeded();
 

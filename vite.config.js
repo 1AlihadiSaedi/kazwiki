@@ -92,8 +92,7 @@ function emitPlugin(){
       const out={admin:{username:cfg.ADMIN_USERNAME||'root',passwordHash:h},defaultLanguage:cfg.DEFAULT_LANGUAGE||'fa',languages:cfg.LANGUAGES||['fa','en'],homePage:cfg.HOME_PAGE||'home',title:cfg.SITE_TITLE||{fa:'ویکی زمردین',en:'Emerald Wiki'}};
       fs.writeFileSync(path.join(dist,'config.js'),`(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`);
       const idx=path.join(dist,'index.html');let html=fs.readFileSync(idx,'utf-8');
-      html=html.replace('</head>','  <script src="./config.js" defer></script>
-  </head>');
+      html=html.replace('</head>','  <script src="./config.js" defer></script>\n  </head>');
       fs.writeFileSync(idx,html);
       console.log(`  ✅ dist/config.js`);console.log(`  ✅ dist/pages/  (${fc} .md files)`);
     }

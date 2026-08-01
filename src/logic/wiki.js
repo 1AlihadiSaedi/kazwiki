@@ -49,3 +49,5 @@ h=h.replace(/\n/g,'');return h}
 function escapeHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 
 export function getAllSlugs(){const idx=getPageIndex();const s={};for(const p of idx){if(!s[p.slug])s[p.slug]={slug:p.slug,titles:{}};s[p.slug].titles[p.lang]=p.title}return Object.values(s)}
+
+export function searchPages(query,lang){if(!query||!query.trim())return null;const q=query.toLowerCase().trim();const r=[];for(const[fp,content]of Object.entries(pages)){if(!content)continue;const ci=content.toLowerCase().indexOf(q);if(ci===-1)continue;const parts=fp.split('/');const fname=parts.pop();const pl=parts.pop();const slug=fname.replace(/\.md$/,'');const m=content.match(/^#\s+(.+)$/m);const title=m?m[1].trim():slug;const s=Math.max(0,ci-30);const e=Math.min(content.length,ci+q.length+30);let sn=content.substring(s,e).replace(/\n/g,' ').trim();if(s>0)sn='\u2026'+sn;if(e<content.length)sn=sn+'\u2026';r.push({slug,lang:pl,title,snippet:sn})}r.sort((a,b)=>{if(a.lang===lang&&b.lang!==lang)return-1;if(b.lang===lang&&a.lang!==lang)return 1;return 0});return r}

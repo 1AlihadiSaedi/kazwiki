@@ -13,7 +13,7 @@
 }
 
 html {
-  font-size: clamp(14px, 1vw + 8px, 22px);
+  font-size: clamp(16px, 0.9vw + 10px, 22px);
   scroll-behavior: smooth;
 }
 

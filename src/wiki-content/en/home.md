@@ -21,6 +21,14 @@ A **lightweight personal Wiki** built with Svelte.
 Click the floating pencil button to open the local editor.
 You can download your changes as a Markdown file.
 
+## Limitations
+
+Since the site is fully static, there are some limitations:
+
+- **Local authentication** — Login with username and password is done locally (SHA-256), not via an external server
+- **Local saving** — Changes are saved to disk via the local API server (port 5174)
+- **Client-side search** — Search only works within loaded pages, not across the entire site
+
 ## Markdown Format
 
 This wiki supports standard **Markdown**:

@@ -1,5 +1,6 @@
 import { sha256 } from './crypto.js';
 import { getAllUsers, getUserByUsername, getPermissionsForRole } from './db.js';
+import adminCreds from 'virtual:admin-creds';
 
 const AUTH_KEY = 'emerald-wiki-session';
 
@@ -16,8 +17,7 @@ function getAdminCreds() {
   if (typeof window !== 'undefined' && window.__EMERALD_CONFIG__?.admin?.passwordHash) {
     return window.__EMERALD_CONFIG__.admin;
   }
-  if (typeof __ADMIN_CREDS__ !== 'undefined') return __ADMIN_CREDS__;
-  return { uh: '', ph: '', dn: 'Admin' };
+  return adminCreds;
 }
 
 export async function signIn(username, password) {

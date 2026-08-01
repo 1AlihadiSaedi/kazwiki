@@ -22,7 +22,7 @@ try{
 }catch{}
 
 function wikiPlugin(){
-  const V='virtual:wiki-content',R='\0'+V;
+  const V='virtual:wiki-content',R='\0'+V,AV='virtual:admin-creds',AR='\0'+AV;
   function loadAll(ctx){
     const pages={};
     try{
@@ -85,7 +85,7 @@ function wikiPlugin(){
       next();
     });
   }
-  return{name:'wiki',resolveId(id){if(id===V)return R},load(id){if(id===R)return`const data=${JSON.stringify(loadAll(this))};export default data;`},configureServer:addMiddleware,configurePreviewServer:addMiddleware};
+  return{name:'wiki',resolveId(id){if(id===V)return R;if(id===AV)return AR},load(id){if(id===R)return`const data=${JSON.stringify(loadAll(this))};export default data;`;if(id===AR)return`export default ${JSON.stringify(hashedCreds)};`},configureServer:addMiddleware,configurePreviewServer:addMiddleware};
 }
 
 function emitPlugin(){
@@ -96,7 +96,6 @@ function emitPlugin(){
       try{
         cfg=await import(path.resolve(__dirname,'src/config.js'));
         for(const l of(cfg.LANGUAGES||['fa','en']))fs.mkdirSync(path.join(contentDir,l),{recursive:true});
-        // Regenerate hashed cred file from config.js
         const hc={
           uh:crypto.createHash('sha256').update(cfg.ADMIN_USERNAME||'root').digest('hex'),
           ph:crypto.createHash('sha256').update(cfg.ADMIN_PASSWORD||'').digest('hex'),
@@ -120,7 +119,6 @@ function emitPlugin(){
           for(const f of fs2){fs.copyFileSync(path.join(sd,f),path.join(dd,f));fc++}
         }
       }catch{}
-      // Only hashed values — never plain text
       const out={
         admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},
         defaultLanguage:cfg.DEFAULT_LANGUAGE||'fa',languages:cfg.LANGUAGES||['fa','en'],
@@ -139,7 +137,6 @@ function fpPlugin(){return{name:'fp',transformIndexHtml:{order:'post',handler(h)
 
 export default defineConfig({
   plugins:[svelte(),wikiPlugin(),emitPlugin(),fpPlugin()],
-  define:{__ADMIN_CREDS__:JSON.stringify(hashedCreds)},
   base:'./',
   build:{outDir:'dist',assetsDir:'assets',cssCodeSplit:false,minify:'esbuild',rollupOptions:{output:{format:'iife',inlineDynamicImports:true,manualChunks:undefined}}}
 });

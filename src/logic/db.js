@@ -1,21 +1,19 @@
 import { DEFAULT_ROLES, DEFAULT_TRANSLATIONS } from '../config.js';
+import adminCreds from 'virtual:admin-creds';
 
 const UK = 'emerald-wiki-users';
 const RK = 'emerald-wiki-roles';
 const IK = 'emerald-wiki-i18n';
 
-// ── seed ──
 function ensureSeeded() {
   if (!localStorage.getItem(RK)) {
     localStorage.setItem(RK, JSON.stringify(DEFAULT_ROLES));
   }
   if (!localStorage.getItem(UK)) {
-    // Seed admin user from hashed creds (injected by Vite)
-    const creds = (typeof __ADMIN_CREDS__ !== 'undefined') ? __ADMIN_CREDS__ : { uh: '', ph: '', dn: 'Admin' };
     const users = [{
       username: 'root',
-      displayName: creds.dn || 'Admin',
-      passwordHash: creds.ph || '',
+      displayName: adminCreds.dn || 'Admin',
+      passwordHash: adminCreds.ph || '',
       role: 'admin',
       createdAt: new Date().toISOString()
     }];
@@ -27,7 +25,6 @@ function ensureSeeded() {
 }
 if (typeof localStorage !== 'undefined') ensureSeeded();
 
-// ── Users ──
 export function getAllUsers() {
   try { return JSON.parse(localStorage.getItem(UK)) || []; } catch { return []; }
 }
@@ -60,7 +57,6 @@ export function updateUser(username, updates) {
   return { ok: true };
 }
 
-// ── Roles ──
 export function getAllRoles() {
   try { return JSON.parse(localStorage.getItem(RK)) || []; } catch { return []; }
 }
@@ -103,7 +99,6 @@ export function getPermissionsForRole(roleId) {
   return role ? role.permissions : [];
 }
 
-// ── i18n ──
 export function getAllLanguages() {
   try { return JSON.parse(localStorage.getItem(IK)) || {}; } catch { return {}; }
 }
@@ -111,7 +106,6 @@ export function saveLanguages(data) {
   localStorage.setItem(IK, JSON.stringify(data));
 }
 
-// ── Profile ──
 export async function getMyProfile() {
   const auth = (await import('./auth.js')).getSession();
   if (!auth) return null;

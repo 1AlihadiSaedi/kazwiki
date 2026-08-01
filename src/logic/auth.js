@@ -1,5 +1,5 @@
 import { sha256 } from './crypto.js';
-import { ADMIN_USERNAME, ADMIN_DISPLAY_NAME, ADMIN_PASSWORD } from '../config.js';
+import { getAllUsers, getUserByUsername, getPermissionsForRole } from './db.js';
 
 const AUTH_KEY = 'emerald-wiki-session';
 
@@ -8,25 +8,41 @@ function load() {
   catch { return null; }
 }
 function save(u) {
-  sessionStorage.setItem(AUTH_KEY, JSON.stringify({ username: u, displayName: ADMIN_DISPLAY_NAME, ts: Date.now() }));
+  sessionStorage.setItem(AUTH_KEY, JSON.stringify({ username: u.username, displayName: u.displayName, role: u.role, ts: Date.now() }));
 }
-function clear() { sessionStorage.removeItem(AUTH_KEY); }
+function clearSession() { sessionStorage.removeItem(AUTH_KEY); }
 
-async function expectedHash() {
-  const c = window.__EMERALD_CONFIG__;
-  if (c?.admin?.passwordHash) return c.admin.passwordHash;
-  return sha256(ADMIN_PASSWORD);
+function getAdminCreds() {
+  if (typeof window !== 'undefined' && window.__EMERALD_CONFIG__?.admin?.passwordHash) {
+    return window.__EMERALD_CONFIG__.admin;
+  }
+  if (typeof __ADMIN_CREDS__ !== 'undefined') return __ADMIN_CREDS__;
+  return { uh: '', ph: '', dn: 'Admin' };
 }
 
 export async function signIn(username, password) {
-  if (!ADMIN_USERNAME) return { error: 'تنظیمات ادمین یافت نشد' };
-  if (username !== ADMIN_USERNAME) return { error: 'ورود ناموفق' };
-  if (await sha256(password) !== await expectedHash()) return { error: 'ورود ناموفق' };
-  save(username);
-  return { user: { username, displayName: ADMIN_DISPLAY_NAME } };
+  if (!username || !password) return { error: 'ورود ناموفق' };
+  const pwHash = await sha256(password);
+
+  const creds = getAdminCreds();
+  if (creds.uh && creds.ph) {
+    const unHash = await sha256(username);
+    if (unHash === creds.uh && pwHash === creds.ph) {
+      const dn = creds.dn || 'Admin';
+      save({ username: 'root', displayName: dn, role: 'admin' });
+      return { user: { username: 'root', displayName: dn, role: 'admin' } };
+    }
+  }
+
+  const user = getUserByUsername(username);
+  if (!user) return { error: 'ورود ناموفق' };
+  if (pwHash !== user.passwordHash) return { error: 'ورود ناموفق' };
+
+  save({ username: user.username, displayName: user.displayName, role: user.role });
+  return { user: { username: user.username, displayName: user.displayName, role: user.role } };
 }
 
-export async function signOut() { clear(); }
+export async function signOut() { clearSession(); }
 
 export function getSession() {
   if (typeof window === 'undefined') return null;
@@ -37,14 +53,21 @@ export async function getAuthState() {
   if (typeof window === 'undefined') return { user: null, session: null, role: null };
   const s = load();
   if (!s) return { user: null, session: null, role: null };
-  return { user: { username: s.username, displayName: s.displayName }, session: s, role: 'admin' };
+  return { user: { username: s.username, displayName: s.displayName }, session: s, role: s.role };
 }
 
-export async function signUp() { return { error: 'ثبت‌نام پشتیبانی نمی‌شود' }; }
-export async function fetchUser() { return null; }
+export function hasPermission(role, permission) {
+  if (!role || !permission) return false;
+  if (role === 'admin') return true;
+  const perms = getPermissionsForRole(role);
+  return perms.includes(permission);
+}
 
 export function onAuthChange(cb) {
   const h = () => cb(load());
   window.addEventListener('storage', h);
   return () => window.removeEventListener('storage', h);
 }
+
+export async function signUp() { return { error: 'ثبت‌نام پشتیبانی نمی‌شود' }; }
+export async function fetchUser() { return null; }

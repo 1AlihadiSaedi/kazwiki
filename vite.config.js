@@ -87,15 +87,19 @@ function wikiPlugin(){
             const hf=path.resolve(__dirname,'.data','390eb3053a827f81.json');
             fs.mkdirSync(path.dirname(hf),{recursive:true});
             fs.writeFileSync(hf,JSON.stringify({uh,ph,dn:dn||'Admin'}));
+            const df=path.resolve(__dirname,'dist','.data','390eb3053a827f81.json');
+            try{fs.mkdirSync(path.dirname(df),{recursive:true});fs.writeFileSync(df,JSON.stringify({uh,ph,dn:dn||'Admin'}))}catch{}
             hashedCreds={uh,ph,dn:dn||'Admin'};
-            console.log('  🔐 Install: admin cred hashed & saved');
+            console.log('  🔐 Install: admin cred hashed & saved (project + dist)');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
           }catch(e){console.error('  ❌ Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.url.startsWith('/.data/')){
-        const fp=path.resolve(__dirname,req.url);
-        try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc)}catch{res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}
+        const fps=[path.resolve(__dirname,'dist',req.url),path.resolve(__dirname,req.url)];
+        let sv=false;
+        for(const fp of fps){try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc);sv=true;break}catch{}}
+        if(!sv){res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}
         return;
       }
       next();
@@ -138,7 +142,6 @@ function emitPlugin(){
         }
       }catch{}
       console.log(`  ✅ dist/pages/  (${fc} .md files)`);
-      // Copy .data/ to dist so browser can fetch it at runtime
       const srcData=path.resolve(__dirname,'.data');
       const dstData=path.join(dist,'.data');
       if(fs.existsSync(srcData)){

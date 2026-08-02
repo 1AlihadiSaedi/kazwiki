@@ -114,6 +114,8 @@ function emitPlugin(){
     },
     transformIndexHtml(html){
       const sd=cfg.SITE_DEFAULTS||defaults;
+      // Re-check creds file on every request (handles dev mode after /api/install)
+      if(!installed){try{const r=fs.readFileSync(credsPath,'utf-8');const c=JSON.parse(r);if(c.ph?.length>0)installed=true}catch{}}
       const out={
         installed,
         admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},

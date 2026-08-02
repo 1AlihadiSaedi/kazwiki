@@ -7,11 +7,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const contentDir=path.resolve(__dirname,'src/wiki-content');
 
-// ── Admin creds & installed flag (.data/ file) ──
+// ── Admin creds (.data/ file) ──
 const credsPath=path.resolve(__dirname,'.data','390eb3053a827f81.json');
 let hashedCreds={uh:'',ph:'',dn:'Admin'};
-let installed=false;
-try{hashedCreds=JSON.parse(fs.readFileSync(credsPath,'utf-8'));if(hashedCreds.ph?.length>0)installed=true}catch{}
+try{hashedCreds=JSON.parse(fs.readFileSync(credsPath,'utf-8'))}catch{}
 try{
   const cr=fs.readFileSync(path.resolve(__dirname,'src/config.js'),'utf-8');
   const un=(cr.match(/ADMIN_USERNAME\s*=\s*'([^']*)'/)||[,'root'])[1];
@@ -89,7 +88,6 @@ function wikiPlugin(){
             fs.mkdirSync(path.dirname(hf),{recursive:true});
             fs.writeFileSync(hf,JSON.stringify({uh,ph,dn:dn||'Admin'}));
             hashedCreds={uh,ph,dn:dn||'Admin'};
-            installed=true;
             console.log('  🔐 Install: admin cred hashed & saved');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
           }catch(e){console.error('  ❌ Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
@@ -120,9 +118,7 @@ function emitPlugin(){
     },
     transformIndexHtml(html){
       const sd=cfg.SITE_DEFAULTS||defaults;
-      if(!installed){try{const r=fs.readFileSync(credsPath,'utf-8');const c=JSON.parse(r);if(c.ph?.length>0)installed=true}catch{}}
       const out={
-        installed,
         admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},
         defaultLanguage:sd.defaultLanguage||'fa',languages:sd.languages||['fa','en'],
         homePage:sd.homePage||'home',title:sd.title||{fa:'ویکی زمردین',en:'Emerald Wiki'}

@@ -12,7 +12,7 @@ let hashedCreds={uh:'',ph:'',dn:'Admin'};
 try{hashedCreds=JSON.parse(fs.readFileSync(credsPath,'utf-8'))}catch{}
 try{
   const cr=fs.readFileSync(path.resolve(__dirname,'src/config.js'),'utf-8');
-  const un=(cr.match(/ADMIN_USERNAME\s*=\s*'([^']*)'/)||[,''])[1];
+  const un=(cr.match(/ADMIN_USERNAME\s*=\s*'([^']*)'/)||[,'root'])[1];
   const pw=(cr.match(/ADMIN_PASSWORD\s*=\s*'([^']*)'/)||[,''])[1];
   const dn=(cr.match(/ADMIN_DISPLAY_NAME\s*=\s*'([^']*)'/)||[,'Admin'])[1];
   if(un&&pw) hashedCreds={uh:crypto.createHash('sha256').update(un).digest('hex'),ph:crypto.createHash('sha256').update(pw).digest('hex'),dn};
@@ -99,16 +99,28 @@ function wikiPlugin(){
 }
 
 function emitPlugin(){
-  let cfg={};
-  const defs={defaultLanguage:'fa',languages:['fa','en'],homePage:'home',title:{fa:'ویکی زمردین',en:'Emerald Wiki'}};
+  let cfg={},isBuild=false;
+  const defaults={defaultLanguage:'fa',languages:['fa','en'],homePage:'home',title:{fa:'ویکی زمردین',en:'Emerald Wiki'}};
   return{
     name:'emit',
+    configResolved(c){isBuild=c.command==='build'},
     async buildStart(){
-      try{cfg=await import(path.resolve(__dirname,'src/config.js'));const sd=cfg.SITE_DEFAULTS||defs;for(const l of(sd.languages||['fa','en']))fs.mkdirSync(path.join(contentDir,l),{recursive:true})}catch{}
+      try{
+        cfg=await import(path.resolve(__dirname,'src/config.js'));
+        const sd=cfg.SITE_DEFAULTS||defaults;
+        for(const l of(sd.languages||['fa','en']))fs.mkdirSync(path.join(contentDir,l),{recursive:true});
+      }catch{console.error('  ⚠️ buildStart error')}
     },
     transformIndexHtml(html){
-      const sd=cfg.SITE_DEFAULTS||defs;
-      return html.replace('</head>',`<script>(function(){window.__EMERALD_CONFIG__=${JSON.stringify({admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},defaultLanguage:sd.defaultLanguage||'fa',languages:sd.languages||['fa','en'],homePage:sd.homePage||'home',title:sd.title||{fa:'ویکی زمردین',en:'Emerald Wiki'}})};})();</script></head>`);
+      const sd=cfg.SITE_DEFAULTS||defaults;
+      const cred=isBuild ? hashedCreds : {uh:'',ph:'',dn:'Admin'};
+      const out={
+        admin:{usernameHash:cred.uh||'',passwordHash:cred.ph||'',displayName:cred.dn||'Admin'},
+        defaultLanguage:sd.defaultLanguage||'fa',languages:sd.languages||['fa','en'],
+        homePage:sd.homePage||'home',title:sd.title||{fa:'ویکی زمردین',en:'Emerald Wiki'}
+      };
+      const script=`(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`;
+      return html.replace('</head>',`  <script>${script}</script>\n  </head>`);
     },
     async closeBundle(){
       const dist=path.resolve(__dirname,'dist');let fc=0;

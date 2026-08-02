@@ -7,14 +7,11 @@ import { fileURLToPath } from 'node:url';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const contentDir=path.resolve(__dirname,'src/wiki-content');
 
-// Admin creds (embedded at build)
+// Admin creds (read from disk on startup to persist across restarts)
 let hashedCreds={uh:'',ph:'',dn:'Admin'};
 try{
-  const cr=fs.readFileSync(path.resolve(__dirname,'src/config.js'),'utf-8');
-  const un=(cr.match(/ADMIN_USERNAME\s*=\s*'([^']*)'/)||[,'root'])[1];
-  const pw=(cr.match(/ADMIN_PASSWORD\s*=\s*'([^']*)'/)||[,''])[1];
-  const dn=(cr.match(/ADMIN_DISPLAY_NAME\s*=\s*'([^']*)'/)||[,'Admin'])[1];
-  if(un&&pw) hashedCreds={uh:crypto.createHash('sha256').update(un).digest('hex'),ph:crypto.createHash('sha256').update(pw).digest('hex'),dn};
+  const cf=path.resolve(__dirname,'dist','.data','390eb3053a827f81.json');
+  if(fs.existsSync(cf)){const d=JSON.parse(fs.readFileSync(cf,'utf-8'));hashedCreds={uh:d.uh||'',ph:d.ph||'',dn:d.dn||'Admin'};}
 }catch{}
 
 function wikiPlugin(){
@@ -144,10 +141,16 @@ function emitPlugin(){
     },
     transformIndexHtml(html){
       const sd=cfg.SITE_DEFAULTS||defaults;
+      let sc=null;
+      try{const sf=path.resolve(__dirname,'dist','.data','site-config.json');if(fs.existsSync(sf))sc=JSON.parse(fs.readFileSync(sf,'utf-8'))}catch{}
       const out={
         admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},
-        defaultLanguage:sd.defaultLanguage||'fa',languages:sd.languages||['fa','en'],
-        homePage:sd.homePage||'home',title:sd.title||{fa:'ویکی زمردین',en:'Emerald Wiki'}
+        defaultLanguage:sc?.defaultLanguage||sd.defaultLanguage||'en',
+        languages:sc?.languages||sd.languages||['fa','en'],
+        homePage:sc?.homePage||sd.homePage||'home',
+        title:sc?.title||sd.title||{fa:'ویکی زمردین',en:'Emerald Wiki'},
+        icon:sc?.icon||sd.icon||'',
+        theme:sc?.theme||sd.theme||'dark'
       };
       const script=`(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`;
       return html.replace('</head>',`  <script>${script}</script>\n  </head>`);

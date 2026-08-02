@@ -26,13 +26,16 @@ async function loadData() {
   try {
     myProfile = await getMyProfile();
     roles = getAllRoles();
-    const sc = getSiteConfig();
-    if (sc?.site?.title) {
-      wikiTitle = typeof sc.site.title === 'object'
-        ? (sc.site.title[lang] || sc.site.title.en || '')
-        : sc.site.title;
+    const sc = await getSiteConfig();
+    if (sc) {
+      const site = sc.site || sc;
+      if (site?.title) {
+        wikiTitle = typeof site.title === 'object'
+          ? (site.title[lang] || site.title.en || '')
+          : site.title;
+      }
+      if (site?.icon) wikiIcon = site.icon;
     }
-    if (sc?.site?.icon) wikiIcon = sc.site.icon;
   } catch(e) {}
   loading = false;
 }
@@ -62,14 +65,15 @@ function removeIcon() {
   wikiIcon = '';
 }
 
-function saveWikiSettings() {
+async function saveWikiSettings() {
   wikiSaved = false;
   wikiError = '';
-  const sc = getSiteConfig();
-  const titleObj = sc?.site?.title && typeof sc.site.title === 'object'
-    ? { ...sc.site.title, [lang]: wikiTitle || sc.site.title[lang] }
+  const sc = await getSiteConfig();
+  const site = sc?.site || sc;
+  const titleObj = site?.title && typeof site.title === 'object'
+    ? { ...site.title, [lang]: wikiTitle || site.title[lang] }
     : { fa: wikiTitle || 'ویکی زمردین', en: wikiTitle || 'Emerald Wiki' };
-  updateSiteConfig({ title: titleObj, icon: wikiIcon });
+  await updateSiteConfig({ title: titleObj, icon: wikiIcon });
   wikiSaved = true;
   setTimeout(() => wikiSaved = false, 2500);
 }

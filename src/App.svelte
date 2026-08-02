@@ -13,8 +13,13 @@ let ready=$state(false);
 $effect(()=>{
   isInstalled().then(val=>{
     installed=val;
-    if(val){const c=getSiteConfig();if(c?.site)sc=c.site}
-    ready=true;
+    if(val){
+      getSiteConfig().then(c=>{
+        if(c?.defaultLanguage)sc=c;
+        else if(c?.site)sc=c.site;
+        ready=true;
+      });
+    }else{ready=true;}
   });
 });
 

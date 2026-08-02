@@ -49,7 +49,7 @@ function handleNext() {
   step++;
 }
 
-function handleInstall() {
+async function handleInstall() {
   error = '';
   const ph = sha256(form.password);
   const uh = sha256(form.username);
@@ -60,6 +60,8 @@ function handleInstall() {
   const wikiTitleObj = form.wikiTitle
     ? { fa: form.wikiTitle, en: form.wikiTitle }
     : { fa: 'ویکی زمردین', en: 'Emerald Wiki' };
+
+  // First: save everything to localStorage (local fallback)
   saveSiteConfig({
     username: form.username,
     passwordHash: ph,
@@ -81,13 +83,32 @@ function handleInstall() {
   localStorage.setItem('emerald-wiki-roles', JSON.stringify(DEFAULT_ROLES));
   localStorage.setItem('emerald-wiki-i18n', JSON.stringify(DEFAULT_TRANSLATIONS));
   localStorage.setItem('emerald-wiki-version', '2');
+
+  // Then: save credentials to server
   try {
-    fetch('/api/install', {
+    const res = await fetch('/api/install', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uh, ph, dn: form.displayName })
+      body: JSON.stringify({
+        uh, ph, dn: form.displayName,
+        defaultLanguage: form.defaultLanguage,
+        languages: langs,
+        homePage: SITE_DEFAULTS.homePage,
+        title: wikiTitleObj,
+        icon: form.wikiIcon,
+        theme: theme
+      })
     });
-  } catch {}
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      error = err.error || 'Server returned ' + res.status;
+      return;
+    }
+  } catch (e) {
+    error = 'Cannot reach server. Make sure save-server.js is running on port 5174.';
+    return;
+  }
+
   success = true;
   setTimeout(() => window.location.reload(), 1200);
 }

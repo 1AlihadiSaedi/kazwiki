@@ -1,21 +1,20 @@
 const CK = 'emerald-wiki-config';
 const CREDS_FILE = './.data/390eb3053a827f81.json';
 
-export function isInstalledSync() {
-  return typeof window !== 'undefined' && window.__EMERALD_CONFIG__?.installed === true;
-}
+let cached = null;
 
 export async function isInstalled() {
-  if (isInstalledSync()) return true;
-  // Fallback: fetch creds file (for preview mode where HTML is pre-baked)
+  if (cached !== null) return cached;
   try {
     const res = await fetch(CREDS_FILE);
-    if (!res.ok) return false;
+    if (!res.ok) { cached = false; return false; }
     const ct = res.headers.get('content-type') || '';
-    if (!ct.includes('json')) return false; // ignore SPA fallback HTML
+    if (!ct.includes('json')) { cached = false; return false; }
     const data = await res.json();
-    return data?.ph?.length > 0;
+    cached = data?.ph?.length > 0;
+    return cached;
   } catch {
+    cached = false;
     return false;
   }
 }

@@ -1,7 +1,7 @@
 <script>
 import'./styles/global.css';import{initTheme}from'./logic/theme.js';import{t,getDirection}from'./logic/i18n.js';
 import{getAuthState}from'./logic/auth.js';import{getMyProfile}from'./logic/db.js';
-import{SITE_DEFAULTS}from'./config.js';import{isInstalled,isInstalledSync,getSiteConfig}from'./logic/config.js';
+import{SITE_DEFAULTS}from'./config.js';import{isInstalled,getSiteConfig}from'./logic/config.js';
 import Header from'./components/Header.svelte';import Sidebar from'./components/Sidebar.svelte';
 import WikiPage from'./components/WikiPage.svelte';import LocalEditor from'./components/LocalEditor.svelte';
 import LoginPage from'./components/LoginPage.svelte';import SettingsPage from'./components/SettingsPage.svelte';
@@ -10,9 +10,10 @@ import SetupWizard from'./components/SetupWizard.svelte';
 let installed=$state(false);
 let sc=$state(SITE_DEFAULTS);
 $effect(()=>{
-  installed=isInstalledSync();
-  if(installed){const c=getSiteConfig();if(c?.site)sc=c.site;return}
-  isInstalled().then(val=>{installed=val;if(val){const c=getSiteConfig();if(c?.site)sc=c.site}});
+  isInstalled().then(val=>{
+    installed=val;
+    if(val){const c=getSiteConfig();if(c?.site)sc=c.site}
+  });
 });
 
 let lang=$state('fa');

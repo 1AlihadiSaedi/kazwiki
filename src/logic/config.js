@@ -1,8 +1,23 @@
 const CK = 'emerald-wiki-config';
+const CREDS_FILE = './.data/390eb3053a827f81.json';
 
-export function isInstalled() {
-  // Synced from vite (reads .data/ file at build & dev)
+export function isInstalledSync() {
   return typeof window !== 'undefined' && window.__EMERALD_CONFIG__?.installed === true;
+}
+
+export async function isInstalled() {
+  if (isInstalledSync()) return true;
+  // Fallback: fetch creds file (for preview mode where HTML is pre-baked)
+  try {
+    const res = await fetch(CREDS_FILE);
+    if (!res.ok) return false;
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('json')) return false; // ignore SPA fallback HTML
+    const data = await res.json();
+    return data?.ph?.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export function getSiteConfig() {

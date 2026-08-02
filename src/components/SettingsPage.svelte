@@ -2,6 +2,7 @@
 import { t } from '../logic/i18n.js';
 import { signOut, hasPermission } from '../logic/auth.js';
 import { getMyProfile, getAllRoles } from '../logic/db.js';
+import { getSiteConfig, updateSiteConfig } from '../logic/config.js';
 import UserList from './admin/UserList.svelte';
 import RoleList from './admin/RoleList.svelte';
 import LanguageManager from './admin/LanguageManager.svelte';
@@ -13,11 +14,26 @@ let logoutConfirm = $state(false);
 let tab = $state('profile');
 let roles = $state([]);
 
+let wikiTitle = $state('');
+let wikiIcon = $state('');
+let wikiSaved = $state(false);
+let wikiError = $state('');
+
 $effect(() => { loadData() });
 
 async function loadData() {
   loading = true;
-  try { myProfile = await getMyProfile(); roles = getAllRoles(); } catch(e) {}
+  try {
+    myProfile = await getMyProfile();
+    roles = getAllRoles();
+    const sc = getSiteConfig();
+    if (sc?.site?.title) {
+      wikiTitle = typeof sc.site.title === 'object'
+        ? (sc.site.title[lang] || sc.site.title.en || '')
+        : sc.site.title;
+    }
+    if (sc?.site?.icon) wikiIcon = sc.site.icon;
+  } catch(e) {}
   loading = false;
 }
 
@@ -27,10 +43,42 @@ async function handleLogout() {
   window.location.reload();
 }
 
+function handleIconUpload(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    wikiError = 'Please select an image file';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    wikiIcon = reader.result;
+    wikiError = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeIcon() {
+  wikiIcon = '';
+}
+
+function saveWikiSettings() {
+  wikiSaved = false;
+  wikiError = '';
+  const sc = getSiteConfig();
+  const titleObj = sc?.site?.title && typeof sc.site.title === 'object'
+    ? { ...sc.site.title, [lang]: wikiTitle || sc.site.title[lang] }
+    : { fa: wikiTitle || 'ویکی زمردین', en: wikiTitle || 'Emerald Wiki' };
+  updateSiteConfig({ title: titleObj, icon: wikiIcon });
+  wikiSaved = true;
+  setTimeout(() => wikiSaved = false, 2500);
+}
+
 function can(perm) { return hasPermission(role, perm); }
 
 const tabs = $derived.by(() => {
   const t = [{ id: 'profile', label: lang === 'en' ? 'Profile' : 'پروفایل', icon: 'user' }];
+  t.push({ id: 'wiki', label: lang === 'en' ? 'Wiki' : 'ویکی', icon: 'wiki' });
   if (can('manage_users')) t.push({ id: 'users', label: lang === 'en' ? 'Users' : 'کاربران', icon: 'users' });
   if (can('manage_roles')) t.push({ id: 'roles', label: lang === 'en' ? 'Roles' : 'نقش‌ها', icon: 'roles' });
   if (can('manage_languages')) t.push({ id: 'languages', label: lang === 'en' ? 'Languages' : 'زبان‌ها', icon: 'lang' });
@@ -49,6 +97,8 @@ const tabs = $derived.by(() => {
         <button class="tb" class:tb--a={tab === tb.id} onclick={() => tab = tb.id}>
           {#if tb.icon === 'user'}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          {:else if tb.icon === 'wiki'}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
           {:else if tb.icon === 'users'}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           {:else if tb.icon === 'roles'}
@@ -110,6 +160,50 @@ const tabs = $derived.by(() => {
           {/if}
         </div>
 
+      {:else if tab === 'wiki'}
+        <div class="pc">
+          <div class="pa">
+            <div class="ai">{wikiIcon ? '' : 'W'}</div>
+            <div class="an2">
+              <span class="an3">{t(lang, 'wikiSettings')}</span>
+              <span class="ar2">{lang === 'en' ? 'Name & Icon' : 'نام و آیکون'}</span>
+            </div>
+          </div>
+          <div class="pi">
+            {#if wikiSaved}
+              <div class="sok">{t(lang, 'wikiNameSaved')}</div>
+            {/if}
+            {#if wikiError}
+              <div class="se2" style="margin:0.5rem 1rem 0">{wikiError}</div>
+            {/if}
+            <div class="pir">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <div class="pid"><span class="pil">{t(lang, 'wikiTitle')}</span>
+                <input class="sfi3" type="text" bind:value={wikiTitle} placeholder="Emerald Wiki" autocomplete="off" />
+              </div>
+            </div>
+            <div class="pir2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <div class="pid">
+                <span class="pil">{t(lang, 'wikiIcon')}</span>
+                <div class="sip2">
+                  {#if wikiIcon}
+                    <img src={wikiIcon} alt="icon" class="sip-img2" />
+                    <button class="sex2" onclick={removeIcon}>x</button>
+                  {:else}
+                    <span class="sidf2">&#9670; {t(lang, 'defaultIcon')}</span>
+                  {/if}
+                </div>
+                <label class="sab3" for="st-ic">
+                  <input id="st-ic" type="file" accept="image/*" class="sif3" onchange={handleIconUpload} />
+                  {t(lang, 'chooseIcon')}
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="snp2" onclick={saveWikiSettings}>{t(lang, 'save')}</button>
+
       {:else if tab === 'users'}
         <UserList {lang} {roles} />
 
@@ -121,7 +215,7 @@ const tabs = $derived.by(() => {
       {/if}
     </div>
 
-    <p class="sf"><a href="#/{lang}/home">← {t(lang, 'backToHome')}</a></p>
+    <p class="sf"><a href="#/{lang}/home">&#8592; {t(lang, 'backToHome')}</a></p>
   </div>
 </div>
 
@@ -131,8 +225,8 @@ const tabs = $derived.by(() => {
   @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .sh2{margin-bottom:clamp(1rem,3vw,1.5rem);text-align:center}
   .st2{font-size:clamp(1.2rem,3.5vw,1.5rem);color:var(--color-accent);margin:0}
-  .tn{display:flex;gap:0.25rem;margin-bottom:1.25rem;border-bottom:2px solid var(--color-border);padding-bottom:0}
-  .tb{display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;border:none;background:none;color:var(--color-text-muted);font-size:var(--font-size-sm);font-family:var(--font-body);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--transition-fast)}
+  .tn{display:flex;gap:0.25rem;margin-bottom:1.25rem;border-bottom:2px solid var(--color-border);padding-bottom:0;overflow-x:auto}
+  .tb{display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;border:none;background:none;color:var(--color-text-muted);font-size:var(--font-size-sm);font-family:var(--font-body);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--transition-fast);flex-shrink:0}
   .tb:hover{color:var(--color-text-primary)}
   .tb--a{color:var(--color-accent);border-bottom-color:var(--color-accent)}
   .tb svg{flex-shrink:0}
@@ -169,5 +263,21 @@ const tabs = $derived.by(() => {
   .lcn:hover{background:var(--color-bg-hover)}
   .sf{text-align:center;font-size:var(--font-size-sm);margin-top:1rem}
   .sf a{color:var(--color-link)}
+  .sok{background:#ecfdf5;color:#059669;padding:0.5rem 1rem;margin:0.5rem 1rem 0;border-radius:var(--radius-sm);font-size:var(--font-size-sm);text-align:center}
+  :global([data-theme="dark"]) .sok{background:#064e3b;color:#6ee7b7}
+  .sfi3{width:100%;padding:0.45rem 0.6rem;border:1px solid var(--color-border);border-radius:var(--radius-md);background:var(--color-bg-secondary);color:var(--color-text-primary);font-family:var(--font-body);font-size:var(--font-size-sm);outline:none;box-sizing:border-box;margin-top:0.4rem}
+  .sfi3:focus{border-color:var(--color-accent);box-shadow:0 0 0 3px var(--color-accent-bg)}
+  .pir2{display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem clamp(1rem,3vw,1.6rem);transition:background var(--transition-fast)}
+  .pir2:hover{background:var(--color-bg-hover)}
+  .pir2 svg{color:var(--color-text-muted);flex-shrink:0;margin-top:0.2rem}
+  .sip2{display:flex;align-items:center;gap:0.5rem;margin:0.3rem 0}
+  .sip-img2{width:40px;height:40px;border-radius:var(--radius-sm);object-fit:cover;border:1px solid var(--color-border)}
+  .sex2{border:none;background:none;color:var(--color-text-muted);cursor:pointer;font-size:var(--font-size-sm);padding:0}
+  .sex2:hover{color:var(--color-danger)}
+  .sidf2{font-size:var(--font-size-sm);color:var(--color-text-muted)}
+  .sab3{display:inline-block;padding:0.35rem 0.7rem;border:1px solid var(--color-accent);border-radius:var(--radius-md);background:var(--color-accent-bg);color:var(--color-accent);font-size:var(--font-size-xs);font-weight:600;cursor:pointer;margin-top:0.35rem}
+  .sif3{display:none}
+  .snp2{display:block;width:100%;padding:0.7rem;border:none;border-radius:var(--radius-md);background:var(--color-accent);color:var(--color-accent-text);font-family:var(--font-body);font-size:var(--font-size-base);font-weight:600;cursor:pointer}
+  .snp2:hover{background:var(--color-accent-dark)}
   @media(max-width:640px){.sp{padding:0.75rem}.tn{gap:0}.tb{padding:0.5rem 0.65rem;font-size:var(--font-size-xs)}}
 </style>

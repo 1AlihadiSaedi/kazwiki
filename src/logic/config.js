@@ -1,28 +1,31 @@
 const CK = 'emerald-wiki-config';
-const CREDS_FILE = './.data/390eb3053a827f81.json';
+const CREDS_URL = '/.data/390eb3053a827f81.json';
+const CONFIG_API = '/api/config';
 
 export async function isInstalled() {
   try {
-    const res = await fetch(CREDS_FILE, { cache: 'no-store' });
+    const res = await fetch(CREDS_URL, { cache: 'no-store' });
+    if (!res.ok) return false;
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('json')) return false;
+    const data = await res.json();
+    return data?.ph?.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function getSiteConfig() {
+  try {
+    const res = await fetch(CONFIG_API, { cache: 'no-store' });
     if (res.ok) {
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('json')) {
-        const data = await res.json();
-        if (data?.ph?.length > 0) return true;
+        const cfg = await res.json();
+        if (cfg && cfg.defaultLanguage) return cfg;
       }
     }
   } catch {}
-  try {
-    const raw = localStorage.getItem(CK);
-    if (raw) {
-      const cfg = JSON.parse(raw);
-      if (cfg?.admin?.passwordHash) return true;
-    }
-  } catch {}
-  return false;
-}
-
-export function getSiteConfig() {
   try {
     const raw = localStorage.getItem(CK);
     if (raw) return JSON.parse(raw);
@@ -47,11 +50,25 @@ export function saveSiteConfig({ username, passwordHash, displayName, defaultLan
   return cfg;
 }
 
-export function updateSiteConfig(updates) {
-  const cfg = getSiteConfig();
+export async function updateSiteConfig(updates) {
+  const cfg = await getSiteConfig();
   if (!cfg) return null;
-  if (!cfg.site) cfg.site = {};
-  Object.assign(cfg.site, updates);
-  localStorage.setItem(CK, JSON.stringify(cfg));
-  return cfg;
+  const site = cfg.site || cfg;
+  Object.assign(site, updates);
+  if (cfg.site) {
+    cfg.site = site;
+    localStorage.setItem(CK, JSON.stringify(cfg));
+  } else {
+    localStorage.setItem(CK, JSON.stringify(site));
+  }
+
+  try {
+    await fetch(CONFIG_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+  } catch {}
+
+  return site;
 }

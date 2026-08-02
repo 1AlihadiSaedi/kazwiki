@@ -1,8 +1,15 @@
 const CK = 'emerald-wiki-config';
+const CREDS_FILE = './.data/390eb3053a827f81.json';
 
-export function isInstalled() {
-  // Simple rule: if build found the hashed creds file → installed
-  return typeof window !== 'undefined' && window.__EMERALD_CONFIG__?.installed === true;
+export async function isInstalled() {
+  try {
+    const res = await fetch(CREDS_FILE);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data?.ph?.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export function getSiteConfig() {

@@ -96,7 +96,7 @@ function wikiPlugin(){
         });return;
       }
       if(req.url.startsWith('/.data/')){
-        const fps=[path.resolve(__dirname,'dist',req.url),path.resolve(__dirname,req.url)];
+        const fps=[path.join(__dirname,'dist',req.url),path.join(__dirname,req.url)];
         let sv=false;
         for(const fp of fps){try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc);sv=true;break}catch{}}
         if(!sv){res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}
@@ -142,6 +142,7 @@ function emitPlugin(){
         }
       }catch{}
       console.log(`  ✅ dist/pages/  (${fc} .md files)`);
+      // Copy .data/ to dist so browser can fetch it at runtime
       const srcData=path.resolve(__dirname,'.data');
       const dstData=path.join(dist,'.data');
       if(fs.existsSync(srcData)){

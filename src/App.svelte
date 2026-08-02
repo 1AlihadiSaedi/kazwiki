@@ -91,9 +91,8 @@ $effect(()=>{
 });
 </script>
 
-{#if !ready}
-{/if}
-{#if ready&&!installed}
+{#if ready}
+{#if !installed}
   <SetupWizard/>
 {:else}
 <div class="al">
@@ -130,6 +129,7 @@ $effect(()=>{
     </main>
   </div>
 </div>
+{/if}
 {/if}
 
 <style>

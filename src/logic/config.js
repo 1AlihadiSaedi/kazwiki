@@ -22,12 +22,28 @@ export function getSiteConfig() {
   return null;
 }
 
-export function saveSiteConfig({ username, passwordHash, displayName, defaultLanguage, languages, homePage, title }) {
+export function saveSiteConfig({ username, passwordHash, displayName, defaultLanguage, languages, homePage, title, icon, theme }) {
   const cfg = {
     admin: { username, displayName, passwordHash },
-    site: { defaultLanguage: defaultLanguage || 'fa', languages: languages || ['fa', 'en'], homePage: homePage || 'home', title: title || { fa: 'ویکی زمردین', en: 'Emerald Wiki' } },
+    site: {
+      defaultLanguage: defaultLanguage || 'en',
+      languages: languages || ['fa', 'en'],
+      homePage: homePage || 'home',
+      title: title || { en: 'Emerald Wiki', fa: 'ویکی زمردین' },
+      icon: icon || '',
+      theme: theme || 'dark',
+    },
     installedAt: new Date().toISOString()
   };
+  localStorage.setItem(CK, JSON.stringify(cfg));
+  return cfg;
+}
+
+export function updateSiteConfig(updates) {
+  const cfg = getSiteConfig();
+  if (!cfg) return null;
+  if (!cfg.site) cfg.site = {};
+  Object.assign(cfg.site, updates);
   localStorage.setItem(CK, JSON.stringify(cfg));
   return cfg;
 }

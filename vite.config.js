@@ -101,11 +101,10 @@ function wikiPlugin(){
 }
 
 function emitPlugin(){
-  let cfg={},isBuild=false;
+  let cfg={};
   const defaults={defaultLanguage:'fa',languages:['fa','en'],homePage:'home',title:{fa:'ویکی زمردین',en:'Emerald Wiki'}};
   return{
     name:'emit',
-    configResolved(c){isBuild=c.command==='build'},
     async buildStart(){
       try{
         cfg=await import(path.resolve(__dirname,'src/config.js'));
@@ -115,10 +114,9 @@ function emitPlugin(){
     },
     transformIndexHtml(html){
       const sd=cfg.SITE_DEFAULTS||defaults;
-      const cred=isBuild ? hashedCreds : {uh:'',ph:'',dn:'Admin'};
       const out={
-        installed: isBuild ? installed : false,
-        admin:{usernameHash:cred.uh||'',passwordHash:cred.ph||'',displayName:cred.dn||'Admin'},
+        installed,
+        admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},
         defaultLanguage:sd.defaultLanguage||'fa',languages:sd.languages||['fa','en'],
         homePage:sd.homePage||'home',title:sd.title||{fa:'ویکی زمردین',en:'Emerald Wiki'}
       };

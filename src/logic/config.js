@@ -1,11 +1,8 @@
 const CK = 'emerald-wiki-config';
 
 export function isInstalled() {
-  // Production build: installed flag embedded at build time (LocalSettings.php pattern)
-  if (typeof window !== 'undefined' && window.__EMERALD_CONFIG__?.installed === true) return true;
-  // Dev mode: localStorage check (set by installer wizard)
-  try { if (localStorage.getItem(CK)) return true; } catch {}
-  return false;
+  // Simple rule: if build found the hashed creds file → installed
+  return typeof window !== 'undefined' && window.__EMERALD_CONFIG__?.installed === true;
 }
 
 export function getSiteConfig() {

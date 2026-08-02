@@ -1,7 +1,8 @@
-import { DEFAULT_LANGUAGE, LANGUAGES, DEFAULT_TRANSLATIONS } from '../config.js';
+import { DEFAULT_TRANSLATIONS } from '../config.js';
 
 const IK = 'emerald-wiki-i18n';
-
+const FALLBACK_LANGS = ['fa', 'en'];
+const FALLBACK_DEFAULT = 'fa';
 const builtin = {
   fa: {
     meta: { name: 'فارسی', code: 'fa', dir: 'rtl' },
@@ -30,46 +31,25 @@ const builtin = {
     }
   }
 };
-
 export function t(l, k) {
   let d;
-  try {
-    const raw = localStorage.getItem(IK);
-    if (raw) { const p = JSON.parse(raw); d = p[l]?.translations; }
-  } catch {}
+  try { const raw = localStorage.getItem(IK); if (raw) { const p = JSON.parse(raw); d = p[l]?.translations; } } catch {}
   if (d && d[k]) return d[k];
   if (builtin[l]?.translations[k]) return builtin[l].translations[k];
   return k;
 }
-
 export function getLanguages() {
-  try {
-    const raw = localStorage.getItem(IK);
-    if (raw) {
-      const p = JSON.parse(raw);
-      const codes = Object.keys(p).filter(c => p[c]?.meta);
-      return codes.map(c => ({ code: c, ...p[c].meta }));
-    }
-  } catch {}
-  return LANGUAGES.filter(c => builtin[c]?.meta).map(c => ({ code: c, ...builtin[c].meta }));
+  try { const raw = localStorage.getItem(IK); if (raw) { const p = JSON.parse(raw); return Object.keys(p).filter(c => p[c]?.meta).map(c => ({ code: c, ...p[c].meta })); } } catch {}
+  return FALLBACK_LANGS.filter(c => builtin[c]?.meta).map(c => ({ code: c, ...builtin[c].meta }));
 }
-
 export function getDirection(l) {
-  try {
-    const raw = localStorage.getItem(IK);
-    if (raw) { const p = JSON.parse(raw); if (p[l]?.meta?.dir) return p[l].meta.dir; }
-  } catch {}
+  try { const raw = localStorage.getItem(IK); if (raw) { const p = JSON.parse(raw); if (p[l]?.meta?.dir) return p[l].meta.dir; } } catch {}
   return l === 'en' ? 'ltr' : 'rtl';
 }
-
 export function getAllLanguageData() {
-  try {
-    const raw = localStorage.getItem(IK);
-    if (raw) return JSON.parse(raw);
-  } catch {}
+  try { const raw = localStorage.getItem(IK); if (raw) return JSON.parse(raw); } catch {}
   return DEFAULT_TRANSLATIONS;
 }
-
 export function addLanguage(code, meta, translations) {
   const data = getAllLanguageData();
   if (data[code]) return { error: 'exists' };
@@ -77,21 +57,18 @@ export function addLanguage(code, meta, translations) {
   localStorage.setItem(IK, JSON.stringify(data));
   return { ok: true };
 }
-
 export function removeLanguage(code) {
   const data = getAllLanguageData();
   if (!data[code]) return { error: 'not_found' };
-  if (code === DEFAULT_LANGUAGE) return { error: 'cannot_delete_default' };
+  if (code === FALLBACK_DEFAULT) return { error: 'cannot_delete_default' };
   delete data[code];
   localStorage.setItem(IK, JSON.stringify(data));
   return { ok: true };
 }
-
 export function exportLanguage(code) {
   const data = getAllLanguageData();
   return data[code] || null;
 }
-
 export function updateTranslation(code, key, value) {
   const data = getAllLanguageData();
   if (!data[code]) return { error: 'not_found' };

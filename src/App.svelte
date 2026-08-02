@@ -14,9 +14,9 @@ $effect(()=>{
   if(installed){const c=getSiteConfig();if(c?.site)sc=c.site}
 });
 
-let lang=$state(sc.defaultLanguage||'fa');
+let lang=$state('fa');
 let route=$state('wiki');
-let slug=$state(sc.homePage||'home');
+let slug=$state('home');
 let edit=$state(false);
 let sq=$state('');
 let user=$state(null);
@@ -73,6 +73,7 @@ function ss(v){
 }
 function ts(){so=!so;ss(so)}
 
+// svelte-ignore state_referenced_locally
 let _was=$state(mobile);
 $effect(()=>{
   function rs(){

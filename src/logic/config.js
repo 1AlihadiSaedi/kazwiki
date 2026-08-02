@@ -1,20 +1,15 @@
 const CK = 'emerald-wiki-config';
 const CREDS_FILE = './.data/390eb3053a827f81.json';
 
-let cached = null;
-
 export async function isInstalled() {
-  if (cached !== null) return cached;
   try {
-    const res = await fetch(CREDS_FILE);
-    if (!res.ok) { cached = false; return false; }
+    const res = await fetch(CREDS_FILE, { cache: 'no-store' });
+    if (!res.ok) return false;
     const ct = res.headers.get('content-type') || '';
-    if (!ct.includes('json')) { cached = false; return false; }
+    if (!ct.includes('json')) return false;
     const data = await res.json();
-    cached = data?.ph?.length > 0;
-    return cached;
+    return data?.ph?.length > 0;
   } catch {
-    cached = false;
     return false;
   }
 }

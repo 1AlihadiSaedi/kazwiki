@@ -95,7 +95,7 @@ function wikiPlugin(){
       }
       if(req.url.startsWith('/.data/')){
         const fp=path.resolve(__dirname,req.url);
-        try{res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-cache'});res.end(fs.readFileSync(fp,'utf-8'));}catch{res.writeHead(404);res.end('Not found')}
+        try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-cache'});res.end(fc)}catch{res.writeHead(404);res.end('Not found')}
         return;
       }
       next();

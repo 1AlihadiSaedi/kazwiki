@@ -59,9 +59,10 @@ function wikiPlugin(){
             const df=path.resolve(__dirname,'dist','pages',lang,`${safe}.md`);
             try{fs.mkdirSync(path.dirname(df),{recursive:true});fs.copyFileSync(file,df)}catch{}
             const v=fs.readFileSync(file,'utf-8')===content;
+            console.log(`  💾 Saved: ${lang}/${safe}.md  (${content.length}B, v=${v})`);
             res.writeHead(200,{'Content-Type':'application/json'});
             res.end(JSON.stringify({ok:true,file:`${lang}/${safe}.md`,verified:v}));
-          }catch(e){res.writeHead(400);res.end(JSON.stringify({ok:false,error:e.message}))}
+          }catch(e){console.error('  ❌ Save:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.method==='DELETE'&&req.url==='/api/page'){
@@ -71,8 +72,24 @@ function wikiPlugin(){
             const safe=slug.replace(/[^a-zA-Z0-9_-]/g,'');
             const file=path.join(contentDir,lang,`${safe}.md`);
             if(fs.existsSync(file))fs.unlinkSync(file);
-            res.writeHead(200);res.end(JSON.stringify({ok:true}));
-          }catch(e){res.writeHead(400);res.end(JSON.stringify({ok:false,error:e.message}))}
+            const df=path.resolve(__dirname,'dist','pages',lang,`${safe}.md`);
+            if(fs.existsSync(df))fs.unlinkSync(df);
+            console.log(`  🗑 Deleted: ${lang}/${safe}.md`);
+            res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
+          }catch(e){console.error('  ❌ Delete:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+        });return;
+      }
+      if(req.method==='POST'&&req.url==='/api/install'){
+        let body='';req.on('data',c=>body+=c);req.on('end',()=>{
+          try{
+            const{uh,ph,dn}=JSON.parse(body);
+            const hf=path.resolve(__dirname,'.data','390eb3053a827f81.json');
+            fs.mkdirSync(path.dirname(hf),{recursive:true});
+            fs.writeFileSync(hf,JSON.stringify({uh,ph,dn:dn||'Admin'}));
+            hashedCreds={uh,ph,dn:dn||'Admin'};
+            console.log('  🔐 Install: admin cred hashed & saved');
+            res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
+          }catch(e){console.error('  ❌ Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       next();
@@ -83,7 +100,7 @@ function wikiPlugin(){
 
 function emitPlugin(){
   let cfg={};
-  const defs={defaultLanguage:'fa',languages:['fa','en'],homePage:'home',title:{fa:'Emerald Wiki',en:'Emerald Wiki'}};
+  const defs={defaultLanguage:'fa',languages:['fa','en'],homePage:'home',title:{fa:'ویکی زمردین',en:'Emerald Wiki'}};
   return{
     name:'emit',
     async buildStart(){
@@ -91,7 +108,7 @@ function emitPlugin(){
     },
     transformIndexHtml(html){
       const sd=cfg.SITE_DEFAULTS||defs;
-      return html.replace('</head>',`<script>(function(){window.__EMERALD_CONFIG__=${JSON.stringify({admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},defaultLanguage:sd.defaultLanguage||'fa',languages:sd.languages||['fa','en'],homePage:sd.homePage||'home',title:sd.title||{fa:'Emerald Wiki',en:'Emerald Wiki'}})};})();</script></head>`);
+      return html.replace('</head>',`<script>(function(){window.__EMERALD_CONFIG__=${JSON.stringify({admin:{usernameHash:hashedCreds.uh||'',passwordHash:hashedCreds.ph||'',displayName:hashedCreds.dn||'Admin'},defaultLanguage:sd.defaultLanguage||'fa',languages:sd.languages||['fa','en'],homePage:sd.homePage||'home',title:sd.title||{fa:'ویکی زمردین',en:'Emerald Wiki'}})};})();</script></head>`);
     },
     async closeBundle(){
       const dist=path.resolve(__dirname,'dist');let fc=0;

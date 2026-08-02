@@ -120,7 +120,7 @@ function wikiPlugin(){
         });return;
       }
       if(req.url.startsWith('/.data/')){
-        const fp=path.join(process.cwd(),'dist',req.url);
+        const fp=path.join(process.cwd(),'dist',req.url.slice(1));
         try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc)}catch{res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}
         return;
       }

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const contentDir=path.resolve(__dirname,'src/wiki-content');
 
-// ── Admin creds (embedded at build) ──
+// Admin creds (embedded at build)
 let hashedCreds={uh:'',ph:'',dn:'Admin'};
 try{
   const cr=fs.readFileSync(path.resolve(__dirname,'src/config.js'),'utf-8');
@@ -59,10 +59,10 @@ function wikiPlugin(){
             const df=path.resolve(__dirname,'dist','pages',lang,`${safe}.md`);
             try{fs.mkdirSync(path.dirname(df),{recursive:true});fs.copyFileSync(file,df)}catch{}
             const v=fs.readFileSync(file,'utf-8')===content;
-            console.log(`  💾 Saved: ${lang}/${safe}.md  (${content.length}B, v=${v})`);
+            console.log(`  Saved: ${lang}/${safe}.md  (${content.length}B, v=${v})`);
             res.writeHead(200,{'Content-Type':'application/json'});
             res.end(JSON.stringify({ok:true,file:`${lang}/${safe}.md`,verified:v}));
-          }catch(e){console.error('  ❌ Save:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+          }catch(e){console.error('  Save:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.method==='DELETE'&&req.url==='/api/page'){
@@ -74,23 +74,49 @@ function wikiPlugin(){
             if(fs.existsSync(file))fs.unlinkSync(file);
             const df=path.resolve(__dirname,'dist','pages',lang,`${safe}.md`);
             if(fs.existsSync(df))fs.unlinkSync(df);
-            console.log(`  🗑 Deleted: ${lang}/${safe}.md`);
+            console.log(`  Deleted: ${lang}/${safe}.md`);
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
-          }catch(e){console.error('  ❌ Delete:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+          }catch(e){console.error('  Delete:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.method==='POST'&&req.url==='/api/install'){
         let body='';req.on('data',c=>body+=c);req.on('end',()=>{
           try{
-            const{uh,ph,dn}=JSON.parse(body);
+            const d=JSON.parse(body);
+            const{uh,ph,dn}=d;
             const root=process.cwd();
-            const df=path.resolve(root,'dist','.data','390eb3053a827f81.json');
-            fs.mkdirSync(path.dirname(df),{recursive:true});
-            fs.writeFileSync(df,JSON.stringify({uh,ph,dn:dn||'Admin'}));
+            const dd=path.resolve(root,'dist','.data');
+            fs.mkdirSync(dd,{recursive:true});
+            fs.writeFileSync(path.join(dd,'390eb3053a827f81.json'),JSON.stringify({uh,ph,dn:dn||'Admin'}));
+            fs.writeFileSync(path.join(dd,'site-config.json'),JSON.stringify({
+              defaultLanguage:d.defaultLanguage||'en',languages:d.languages||['fa','en'],
+              homePage:d.homePage||'home',title:d.title||{en:'Emerald Wiki',fa:'ویکی زمردین'},
+              icon:d.icon||'',theme:d.theme||'dark'
+            }));
             hashedCreds={uh,ph,dn:dn||'Admin'};
-            console.log('  🔐 Install: admin cred saved to dist/.data/');
+            console.log('  Install: creds + config saved to dist/.data/');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
-          }catch(e){console.error('  ❌ Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+          }catch(e){console.error('  Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+        });return;
+      }
+      if(req.method==='GET'&&req.url==='/api/config'){
+        const root=process.cwd();
+        const sf=path.resolve(root,'dist','.data','site-config.json');
+        try{const fc=fs.readFileSync(sf,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc)}catch{res.writeHead(404);res.end(JSON.stringify({ok:false}))}
+        return;
+      }
+      if(req.method==='POST'&&req.url==='/api/config'){
+        let body='';req.on('data',c=>body+=c);req.on('end',()=>{
+          try{
+            const d=JSON.parse(body);const root=process.cwd();
+            const sf=path.resolve(root,'dist','.data','site-config.json');
+            let existing={};try{existing=JSON.parse(fs.readFileSync(sf,'utf-8'))}catch{}
+            const merged={...existing,...d};
+            fs.mkdirSync(path.dirname(sf),{recursive:true});
+            fs.writeFileSync(sf,JSON.stringify(merged));
+            console.log('  Config updated');
+            res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,config:merged}));
+          }catch(e){console.error('  Config:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.url.startsWith('/.data/')){
@@ -114,7 +140,7 @@ function emitPlugin(){
         cfg=await import(path.resolve(__dirname,'src/config.js'));
         const sd=cfg.SITE_DEFAULTS||defaults;
         for(const l of(sd.languages||['fa','en']))fs.mkdirSync(path.join(contentDir,l),{recursive:true});
-      }catch{console.error('  ⚠️ buildStart error')}
+      }catch{console.error('  buildStart error')}
     },
     transformIndexHtml(html){
       const sd=cfg.SITE_DEFAULTS||defaults;
@@ -137,7 +163,7 @@ function emitPlugin(){
           for(const f of fs2){fs.copyFileSync(path.join(sd,f),path.join(dd,f));fc++}
         }
       }catch{}
-      console.log(`  ✅ dist/pages/  (${fc} .md files)`);
+      console.log(`  dist/pages/  (${fc} .md files)`);
     }
   };
 }

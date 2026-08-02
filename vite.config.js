@@ -44,7 +44,8 @@ function wikiPlugin(){
         if(!lang||!fname){res.writeHead(404);res.end('Not found');return}
         const srcFile=path.join(contentDir,lang,fname);
         try{res.writeHead(200,{'Content-Type':'text/plain;charset=utf-8'});res.end(fs.readFileSync(srcFile,'utf-8'));return}catch{
-          const df=path.resolve(__dirname,'dist','pages',lang,fname);
+          const root=process.cwd();
+          const df=path.join(root,'dist','pages',lang,fname);
           try{res.writeHead(200,{'Content-Type':'text/plain;charset=utf-8'});res.end(fs.readFileSync(df,'utf-8'));return}catch{}
         }
         res.writeHead(404);res.end('Not found');return;
@@ -84,19 +85,22 @@ function wikiPlugin(){
         let body='';req.on('data',c=>body+=c);req.on('end',()=>{
           try{
             const{uh,ph,dn}=JSON.parse(body);
-            const hf=path.resolve(__dirname,'.data','390eb3053a827f81.json');
+            const root=process.cwd();
+            const hf=path.resolve(root,'.data','390eb3053a827f81.json');
             fs.mkdirSync(path.dirname(hf),{recursive:true});
             fs.writeFileSync(hf,JSON.stringify({uh,ph,dn:dn||'Admin'}));
-            const df=path.resolve(__dirname,'dist','.data','390eb3053a827f81.json');
-            try{fs.mkdirSync(path.dirname(df),{recursive:true});fs.writeFileSync(df,JSON.stringify({uh,ph,dn:dn||'Admin'}))}catch{}
+            const df=path.resolve(root,'dist','.data','390eb3053a827f81.json');
+            fs.mkdirSync(path.dirname(df),{recursive:true});
+            fs.writeFileSync(df,JSON.stringify({uh,ph,dn:dn||'Admin'}));
             hashedCreds={uh,ph,dn:dn||'Admin'};
-            console.log('  🔐 Install: admin cred hashed & saved (project + dist)');
+            console.log('  🔐 Install: admin cred saved to .data/ and dist/.data/');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
           }catch(e){console.error('  ❌ Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.url.startsWith('/.data/')){
-        const fps=[path.join(__dirname,'dist',req.url),path.join(__dirname,req.url)];
+        const root=process.cwd();
+        const fps=[path.join(root,'dist',req.url),path.join(root,req.url)];
         let sv=false;
         for(const fp of fps){try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc);sv=true;break}catch{}}
         if(!sv){res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}

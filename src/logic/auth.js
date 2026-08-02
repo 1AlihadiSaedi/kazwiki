@@ -1,8 +1,9 @@
 import { sha256 } from './crypto.js';
-import { getAllUsers, getUserByUsername, getPermissionsForRole } from './db.js';
+import { getAllUsers, getUserByUsername, getPermissionsForRole, syncAdminUser } from './db.js';
 import adminCreds from 'virtual:admin-creds';
 
 const AUTH_KEY = 'emerald-wiki-session';
+const norm = (s) => (s || '').trim().toLowerCase();
 
 function load() {
   try { const r = sessionStorage.getItem(AUTH_KEY); return r ? JSON.parse(r) : null; }
@@ -23,18 +24,20 @@ function getAdminCreds() {
 export async function signIn(username, password) {
   if (!username || !password) return { error: 'ورود ناموفق' };
   const pwHash = await sha256(password);
+  const u = norm(username);
 
   const creds = getAdminCreds();
   if (creds.uh && creds.ph) {
-    const unHash = await sha256(username);
+    const unHash = await sha256(u);
     if (unHash === creds.uh && pwHash === creds.ph) {
       const dn = creds.dn || 'Admin';
       save({ username: 'root', displayName: dn, role: 'admin' });
+      syncAdminUser(creds);
       return { user: { username: 'root', displayName: dn, role: 'admin' } };
     }
   }
 
-  const user = getUserByUsername(username);
+  const user = getUserByUsername(u);
   if (!user) return { error: 'ورود ناموفق' };
   if (pwHash !== user.passwordHash) return { error: 'ورود ناموفق' };
 

@@ -5,7 +5,9 @@ const UK = 'emerald-wiki-users';
 const RK = 'emerald-wiki-roles';
 const IK = 'emerald-wiki-i18n';
 const VK = 'emerald-wiki-version';
-const CURRENT_VERSION = 2; // bump to force re-seed on schema changes
+const CURRENT_VERSION = 2;
+
+const norm = (s) => (s || '').trim().toLowerCase();
 
 function ensureSeeded() {
   const storedVersion = parseInt(localStorage.getItem(VK) || '0', 10);
@@ -38,32 +40,50 @@ export function getAllUsers() {
   try { return JSON.parse(localStorage.getItem(UK)) || []; } catch { return []; }
 }
 export function getUserByUsername(username) {
-  return getAllUsers().find(u => u.username === username);
+  const q = norm(username);
+  return getAllUsers().find(u => norm(u.username) === q);
 }
 export function createUser({ username, password, displayName, role }) {
   const users = getAllUsers();
-  if (users.find(u => u.username === username)) return { error: 'username_taken' };
-  if (!username) return { error: 'username_required' };
+  const n = norm(username);
+  if (!n) return { error: 'username_required' };
+  if (users.find(u => norm(u.username) === n)) return { error: 'username_taken' };
   if (!password) return { error: 'password_required' };
-  const ph = password;
-  users.push({ username, displayName, passwordHash: ph, role, createdAt: new Date().toISOString() });
+  users.push({ username: n, displayName, passwordHash: password, role, createdAt: new Date().toISOString() });
   localStorage.setItem(UK, JSON.stringify(users));
   return { ok: true };
 }
 export function deleteUser(username) {
   let users = getAllUsers();
-  if (username === 'root') return { error: 'cannot_delete_root' };
-  users = users.filter(u => u.username !== username);
+  const q = norm(username);
+  if (q === 'root') return { error: 'cannot_delete_root' };
+  users = users.filter(u => norm(u.username) !== q);
   localStorage.setItem(UK, JSON.stringify(users));
   return { ok: true };
 }
 export function updateUser(username, updates) {
   const users = getAllUsers();
-  const idx = users.findIndex(u => u.username === username);
+  const q = norm(username);
+  const idx = users.findIndex(u => norm(u.username) === q);
   if (idx === -1) return { error: 'not_found' };
   Object.assign(users[idx], updates);
   localStorage.setItem(UK, JSON.stringify(users));
   return { ok: true };
+}
+export function syncAdminUser(creds) {
+  const users = getAllUsers();
+  const idx = users.findIndex(u => norm(u.username) === 'root');
+  const entry = { username: 'root', displayName: creds.dn || 'Admin', passwordHash: creds.ph || '', role: 'admin' };
+  if (idx === -1) {
+    entry.createdAt = new Date().toISOString();
+    users.push(entry);
+  } else {
+    if (!users[idx].passwordHash || users[idx].passwordHash !== creds.ph) {
+      users[idx].passwordHash = creds.ph;
+      users[idx].displayName = creds.dn || users[idx].displayName;
+    }
+  }
+  localStorage.setItem(UK, JSON.stringify(users));
 }
 
 export function getAllRoles() {

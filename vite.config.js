@@ -7,10 +7,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const contentDir=path.resolve(__dirname,'src/wiki-content');
 
-// ── Admin creds (.data/ file) ──
-const credsPath=path.resolve(__dirname,'.data','390eb3053a827f81.json');
+// ── Admin creds (embedded at build) ──
 let hashedCreds={uh:'',ph:'',dn:'Admin'};
-try{hashedCreds=JSON.parse(fs.readFileSync(credsPath,'utf-8'))}catch{}
 try{
   const cr=fs.readFileSync(path.resolve(__dirname,'src/config.js'),'utf-8');
   const un=(cr.match(/ADMIN_USERNAME\s*=\s*'([^']*)'/)||[,'root'])[1];
@@ -86,24 +84,18 @@ function wikiPlugin(){
           try{
             const{uh,ph,dn}=JSON.parse(body);
             const root=process.cwd();
-            const hf=path.resolve(root,'.data','390eb3053a827f81.json');
-            fs.mkdirSync(path.dirname(hf),{recursive:true});
-            fs.writeFileSync(hf,JSON.stringify({uh,ph,dn:dn||'Admin'}));
             const df=path.resolve(root,'dist','.data','390eb3053a827f81.json');
             fs.mkdirSync(path.dirname(df),{recursive:true});
             fs.writeFileSync(df,JSON.stringify({uh,ph,dn:dn||'Admin'}));
             hashedCreds={uh,ph,dn:dn||'Admin'};
-            console.log('  🔐 Install: admin cred saved to .data/ and dist/.data/');
+            console.log('  🔐 Install: admin cred saved to dist/.data/');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
           }catch(e){console.error('  ❌ Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.url.startsWith('/.data/')){
-        const root=process.cwd();
-        const fps=[path.join(root,'dist',req.url),path.join(root,req.url)];
-        let sv=false;
-        for(const fp of fps){try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc);sv=true;break}catch{}}
-        if(!sv){res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}
+        const fp=path.join(process.cwd(),'dist',req.url);
+        try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc)}catch{res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}
         return;
       }
       next();
@@ -146,14 +138,6 @@ function emitPlugin(){
         }
       }catch{}
       console.log(`  ✅ dist/pages/  (${fc} .md files)`);
-      // Copy .data/ to dist so browser can fetch it at runtime
-      const srcData=path.resolve(__dirname,'.data');
-      const dstData=path.join(dist,'.data');
-      if(fs.existsSync(srcData)){
-        fs.mkdirSync(dstData,{recursive:true});
-        for(const f of fs.readdirSync(srcData)){fs.copyFileSync(path.join(srcData,f),path.join(dstData,f))}
-        console.log(`  ✅ dist/.data/`);
-      }
     }
   };
 }

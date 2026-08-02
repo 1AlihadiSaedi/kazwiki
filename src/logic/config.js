@@ -4,14 +4,22 @@ const CREDS_FILE = './.data/390eb3053a827f81.json';
 export async function isInstalled() {
   try {
     const res = await fetch(CREDS_FILE, { cache: 'no-store' });
-    if (!res.ok) return false;
-    const ct = res.headers.get('content-type') || '';
-    if (!ct.includes('json')) return false;
-    const data = await res.json();
-    return data?.ph?.length > 0;
-  } catch {
-    return false;
-  }
+    if (res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (ct.includes('json')) {
+        const data = await res.json();
+        if (data?.ph?.length > 0) return true;
+      }
+    }
+  } catch {}
+  try {
+    const raw = localStorage.getItem(CK);
+    if (raw) {
+      const cfg = JSON.parse(raw);
+      if (cfg?.admin?.passwordHash) return true;
+    }
+  } catch {}
+  return false;
 }
 
 export function getSiteConfig() {

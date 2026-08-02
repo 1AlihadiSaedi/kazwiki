@@ -7,12 +7,14 @@ import WikiPage from'./components/WikiPage.svelte';import LocalEditor from'./com
 import LoginPage from'./components/LoginPage.svelte';import SettingsPage from'./components/SettingsPage.svelte';
 import SetupWizard from'./components/SetupWizard.svelte';
 
-let installed=$state(false);
+let installed=$state(null);
 let sc=$state(SITE_DEFAULTS);
+let ready=$state(false);
 $effect(()=>{
   isInstalled().then(val=>{
     installed=val;
     if(val){const c=getSiteConfig();if(c?.site)sc=c.site}
+    ready=true;
   });
 });
 
@@ -89,7 +91,9 @@ $effect(()=>{
 });
 </script>
 
-{#if !installed}
+{#if !ready}
+{/if}
+{#if ready&&!installed}
   <SetupWizard/>
 {:else}
 <div class="al">

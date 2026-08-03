@@ -229,8 +229,8 @@ const tabs = $derived.by(() => {
   @keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
   .sh2{margin-bottom:clamp(1rem,3vw,1.5rem);text-align:center}
   .st2{font-size:clamp(1.2rem,3.5vw,1.5rem);color:var(--color-accent);margin:0}
-  .tn{display:flex;gap:0.25rem;margin-bottom:1.25rem;border-bottom:2px solid var(--color-border);padding-bottom:0;overflow-x:auto}
-  .tb{display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;border:none;background:none;color:var(--color-text-muted);font-size:var(--font-size-sm);font-family:var(--font-body);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--transition-fast);flex-shrink:0}
+  .tn{display:flex;gap:0.25rem;margin-bottom:1.25rem;border-bottom:2px solid var(--color-border);padding-bottom:0;justify-content:center;flex-wrap:wrap;direction:ltr}
+  .tb{display:flex;align-items:center;gap:0.4rem;padding:0.5rem 1rem;border:none;background:none;color:var(--color-text-muted);font-size:var(--font-size-sm);font-family:var(--font-body);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all var(--transition-fast)}
   .tb:hover{color:var(--color-text-primary)}
   .tb--a{color:var(--color-accent);border-bottom-color:var(--color-accent)}
   .tb svg{flex-shrink:0}

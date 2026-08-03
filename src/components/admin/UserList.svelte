@@ -1,6 +1,6 @@
 <script>
 import { t } from '../../logic/i18n.js';
-import { getAllUsers, createUser, deleteUser } from '../../logic/db.js';
+import { getAllUsers, createUser, deleteUser, updateUser } from '../../logic/db.js';
 import { sha256 } from '../../logic/crypto.js';
 let { lang = 'fa', roles = [] } = $props();
 let users = $state([]);
@@ -8,6 +8,9 @@ let showAdd = $state(false);
 let form = $state({ username: '', password: '', displayName: '', role: 'author' });
 let error = $state('');
 let confirmDelete = $state(null);
+let editingUser = $state(null);
+let editForm = $state({ username: '', password: '', displayName: '' });
+let editError = $state('');
 
 $effect(() => { loadUsers() });
 function loadUsers() { users = getAllUsers(); }
@@ -29,6 +32,27 @@ function handleDelete(username) {
   confirmDelete = null;
   loadUsers();
 }
+function startEdit(u) {
+  editingUser = u.username;
+  editForm = { username: u.displayName || u.username, password: '', displayName: u.displayName || '' };
+  editError = '';
+}
+async function handleSave(oldUsername) {
+  editError = '';
+  const up = {};
+  if (editForm.displayName.trim()) up.displayName = editForm.displayName.trim();
+  if (editForm.password.trim()) {
+    up.passwordHash = await sha256(editForm.password);
+  }
+  if (editForm.username.trim() && norm(editForm.username) !== norm(oldUsername)) {
+    up.username = norm(editForm.username);
+    up.usernameHash = await sha256(norm(editForm.username));
+  }
+  updateUser(oldUsername, up);
+  editingUser = null;
+  loadUsers();
+}
+const norm = (s) => (s || '').trim().toLowerCase();
 function isRoot(u) { return u.username === 'root'; }
 </script>
 <div class="ul">
@@ -64,18 +88,36 @@ function isRoot(u) { return u.username === 'root'; }
   {/if}
   <div class="ulist">
     {#each users as u}
-      <div class="ulr">
-        <div class="uli">
-          <span class="uav">{(u.displayName || u.username)[0]}</span>
-          <div class="uid">
-            <span class="uun">{u.displayName || u.username}</span>
-            <span class="uur">{u.role}</span>
+      {#if editingUser === u.username}
+        <div class="uf">
+          {#if editError}<div class="ue">{editError}</div>{/if}
+          <input class="ui" type="text" placeholder={lang==='en'?'Display name':'نام نمایشی'} bind:value={editForm.displayName} />
+          <input class="ui" type="text" placeholder={lang==='en'?'New username':'نام کاربری جدید'} bind:value={editForm.username} />
+          <input class="ui" type="password" placeholder={lang==='en'?'New password (leave empty to keep)':'رمز عبور جدید (خالی = بدون تغییر)'} bind:value={editForm.password} />
+          <div class="ufb">
+            <button class="ubs" onclick={() => handleSave(u.username)}>{t(lang, 'save')}</button>
+            <button class="ubd" onclick={() => editingUser = null}>{t(lang, 'cancel')}</button>
           </div>
         </div>
-        {#if !isRoot(u)}
-          <button class="udl" onclick={() => confirmDelete = u.username}>✕</button>
-        {/if}
-      </div>
+      {:else}
+        <div class="ulr">
+          <div class="uli">
+            <span class="uav">{(u.displayName || u.username)[0]}</span>
+            <div class="uid">
+              <span class="uun">{u.displayName || u.username}</span>
+              <span class="uur">{u.role}</span>
+            </div>
+          </div>
+          {#if !isRoot(u)}
+            <div class="uactions">
+              <button class="ued" onclick={() => startEdit(u)} title={lang==='en'?'Edit':'ویرایش'}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="udl" onclick={() => confirmDelete = u.username}>✕</button>
+            </div>
+          {/if}
+        </div>
+      {/if}
     {/each}
   </div>
 </div>
@@ -113,6 +155,9 @@ function isRoot(u) { return u.username === 'root'; }
   .uid{display:flex;flex-direction:column;gap:0.1rem}
   .uun{font-size:var(--font-size-sm);font-weight:500;color:var(--color-text-primary)}
   .uur{font-size:var(--font-size-xs);color:var(--color-text-muted)}
+  .uactions{display:flex;align-items:center;gap:0.15rem;flex-shrink:0}
+  .ued{border:none;background:none;color:var(--color-text-muted);cursor:pointer;font-size:var(--font-size-sm);padding:4px;display:flex;align-items:center}
+  .ued:hover{color:var(--color-accent)}
   .udl{border:none;background:none;color:var(--color-text-muted);cursor:pointer;font-size:var(--font-size-sm);padding:4px}
   .udl:hover{color:var(--color-danger)}
 </style>

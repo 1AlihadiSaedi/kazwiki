@@ -48,9 +48,15 @@ export async function signIn(username, password) {
     }
   }
 
-  const user = getUserByUsernameHash(unHash);
-  if (!user) return { error: 'ورود ناموفق' };
-  if (pwHash !== user.passwordHash) return { error: 'ورود ناموفق' };
+  let user = getUserByUsernameHash(unHash);
+  if (!user) {
+    // fallback for users created before usernameHash was added
+    user = getUserByUsername(u);
+    if (!user) return { error: 'ورود ناموفق' };
+    if (pwHash !== user.passwordHash) return { error: 'ورود ناموفق' };
+  } else {
+    if (pwHash !== user.passwordHash) return { error: 'ورود ناموفق' };
+  }
 
   save({ username: user.username, displayName: user.displayName, role: user.role });
   return { user: { username: user.username, displayName: user.displayName, role: user.role } };

@@ -45,13 +45,16 @@ export function getUserByUsernameHash(hash) {
   return getAllUsers().find(u => u.usernameHash === hash);
 }
 export function createUser({ username, usernameHash, password, displayName, role }) {
+  console.log('[createUser] called with username:', username, 'usernameHash:', (usernameHash||'').slice(0,8)+'...');
   const users = getAllUsers();
+  console.log('[createUser] existing users:', users.length, users.map(u=>u.username));
   const n = norm(username);
-  if (!n) return { error: 'username_required' };
-  if (users.find(u => norm(u.username) === n)) return { error: 'username_taken' };
-  if (!password) return { error: 'password_required' };
-  if (users.find(u => u.usernameHash && u.usernameHash === usernameHash)) return { error: 'username_taken' };
+  if (!n) { console.log('[createUser] FAIL: username required'); return { error: 'username_required' }; }
+  if (users.find(u => norm(u.username) === n)) { console.log('[createUser] FAIL: username taken'); return { error: 'username_taken' }; }
+  if (!password) { console.log('[createUser] FAIL: password required'); return { error: 'password_required' }; }
+  if (users.find(u => u.usernameHash && u.usernameHash === usernameHash)) { console.log('[createUser] FAIL: usernameHash conflict'); return { error: 'username_taken' }; }
   users.push({ username: n, usernameHash: usernameHash || '', displayName, passwordHash: password, role, createdAt: new Date().toISOString() });
+  console.log('[createUser] SAVED user:', n, 'total users:', users.length);
   localStorage.setItem(UK, JSON.stringify(users));
   return { ok: true };
 }

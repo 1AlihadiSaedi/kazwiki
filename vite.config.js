@@ -34,6 +34,11 @@ function wikiPlugin(){
   }
   function addMiddleware(server){
     server.middlewares.use((req,res,next)=>{
+      if (res.headersSent) { next(); return; }
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
       if(req.method==='GET'&&req.url.startsWith('/pages/')&&req.url.endsWith('.md')){
         const parts=req.url.split('/');const lang=parts[2];const fname=parts[3];
         if(!lang||!fname){res.writeHead(404);res.end('Not found');return}
@@ -56,8 +61,7 @@ function wikiPlugin(){
             const df=path.resolve(__dirname,'dist','pages',lang,`${safe}.md`);
             try{fs.mkdirSync(path.dirname(df),{recursive:true});fs.copyFileSync(file,df)}catch{}
             const v=fs.readFileSync(file,'utf-8')===content;
-            console.log(`  💾 Saved: ${lang}/${safe}.md  (${content.length}B, v=${v})`);
-            // Track page creator (only on first save)
+            console.log(`Saved: ${lang}/${safe}.md`);
             const metaFile = path.join(process.cwd(), 'dist', '.data', 'page-meta.json');
             let meta = {}; try{ meta=JSON.parse(fs.readFileSync(metaFile,'utf-8')); }catch{}
             const metaKey = `${lang}:${safe}`;
@@ -68,7 +72,7 @@ function wikiPlugin(){
             }
             res.writeHead(200,{'Content-Type':'application/json'});
             res.end(JSON.stringify({ok:true,file:`${lang}/${safe}.md`,verified:v}));
-          }catch(e){console.error('  ❌ Save:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+          }catch(e){console.error('Save:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.method==='DELETE'&&req.url==='/api/page'){
@@ -80,9 +84,9 @@ function wikiPlugin(){
             if(fs.existsSync(file))fs.unlinkSync(file);
             const df=path.resolve(__dirname,'dist','pages',lang,`${safe}.md`);
             if(fs.existsSync(df))fs.unlinkSync(df);
-            console.log(`  🗑 Deleted: ${lang}/${safe}.md`);
+            console.log(`Deleted: ${lang}/${safe}.md`);
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
-          }catch(e){console.error('  ❌ Delete:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+          }catch(e){console.error('Delete:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.method==='POST'&&req.url==='/api/install'){
@@ -93,18 +97,16 @@ function wikiPlugin(){
             const root=process.cwd();
             const dd=path.resolve(root,'dist','.data');
             fs.mkdirSync(dd,{recursive:true});
-            // Save credentials
             fs.writeFileSync(path.join(dd,'390eb3053a827f81.json'),JSON.stringify({uh,ph,dn:dn||'Admin'}));
-            // Save site config
             fs.writeFileSync(path.join(dd,'site-config.json'),JSON.stringify({
               defaultLanguage:d.defaultLanguage||'en',languages:d.languages||['fa','en'],
               homePage:d.homePage||'home',title:d.title||{en:'Emerald Wiki',fa:'ویکی زمردین'},
               icon:d.icon||'',theme:d.theme||'dark'
             }));
             hashedCreds={uh,ph,dn:dn||'Admin'};
-            console.log('  🔐 Install: creds + config saved to dist/.data/');
+            console.log('Installed to dist/.data/');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
-          }catch(e){console.error('  ❌ Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+          }catch(e){console.error('Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.method==='GET'&&req.url==='/api/config'){
@@ -122,9 +124,9 @@ function wikiPlugin(){
             const merged={...existing,...d};
             fs.mkdirSync(path.dirname(sf),{recursive:true});
             fs.writeFileSync(sf,JSON.stringify(merged));
-            console.log('  ⚙  Config updated');
+            console.log('Config updated');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,config:merged}));
-          }catch(e){console.error('  ❌ Config:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
+          }catch(e){console.error('Config:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
       if(req.method==='GET'&&req.url==='/api/auth/creds'){
@@ -139,13 +141,11 @@ function wikiPlugin(){
         try{const d=JSON.parse(fs.readFileSync(cf,'utf-8'));res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({installed:!!(d.uh&&d.ph)}))}catch{res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({installed:false}))}
         return;
       }
-      // ── /api/users ── server-side user storage
       const usersFile = path.join(process.cwd(), 'dist', '.data', 'users.json');
       if(req.url && req.url.startsWith('/api/users')){
         const u = new URL(req.url, 'http://localhost');
         const qUsername = u.searchParams.get('username');
         const qUh = u.searchParams.get('usernameHash');
-
         if(req.method === 'GET'){
           let users = []; try{ users=JSON.parse(fs.readFileSync(usersFile,'utf-8')); }catch{}
           if(qUh){
@@ -158,7 +158,6 @@ function wikiPlugin(){
           res.end(JSON.stringify(users));
           return;
         }
-
         if(req.method === 'POST'){
           let body=''; req.on('data',c=>body+=c); req.on('end',()=>{
             try{
@@ -167,12 +166,9 @@ function wikiPlugin(){
               let users=[]; try{ users=JSON.parse(fs.readFileSync(usersFile,'utf-8')); }catch{}
               const idx=users.findIndex(x=>x.username===d.username);
               const entry={
-                username:d.username,
-                usernameHash:d.usernameHash||'',
-                displayName:d.displayName||d.username,
-                passwordHash:d.passwordHash||'',
-                role:d.role||'author',
-                updatedAt:new Date().toISOString()
+                username:d.username,usernameHash:d.usernameHash||'',
+                displayName:d.displayName||d.username,passwordHash:d.passwordHash||'',
+                role:d.role||'author',updatedAt:new Date().toISOString()
               };
               if(idx>=0){ users[idx]={...users[idx],...entry,createdAt:users[idx].createdAt||entry.updatedAt}; }
               else{ entry.createdAt=entry.updatedAt; users.push(entry); }
@@ -182,7 +178,6 @@ function wikiPlugin(){
             }catch(e){ res.writeHead(400,{'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false})); }
           }); return;
         }
-
         if(req.method === 'DELETE'){
           if(!qUsername){ res.writeHead(400,{'Content-Type':'application/json'}); res.end(JSON.stringify({ok:false})); return; }
           let users=[]; try{ users=JSON.parse(fs.readFileSync(usersFile,'utf-8')); }catch{}
@@ -192,8 +187,6 @@ function wikiPlugin(){
           return;
         }
       }
-
-      // ── /api/page-meta ── read page metadata (creator, etc.)
       const pageMetaFile = path.join(process.cwd(), 'dist', '.data', 'page-meta.json');
       if(req.method === 'GET' && req.url && req.url.startsWith('/api/page-meta')){
         const pu = new URL(req.url, 'http://localhost');
@@ -210,7 +203,6 @@ function wikiPlugin(){
         res.end(JSON.stringify(meta));
         return;
       }
-
       if(req.url.startsWith('/.data/')){
         const fp=path.join(process.cwd(),'dist',req.url.slice(1));
         try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc)}catch{res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}
@@ -232,7 +224,7 @@ function emitPlugin(){
         cfg=await import(path.resolve(__dirname,'src/config.js'));
         const sd=cfg.SITE_DEFAULTS||defaults;
         for(const l of(sd.languages||['fa','en']))fs.mkdirSync(path.join(contentDir,l),{recursive:true});
-      }catch{console.error('  ⚠️ buildStart error')}
+      }catch{console.error('buildStart error')}
     },
     transformIndexHtml(html){
       const sd=cfg.SITE_DEFAULTS||defaults;
@@ -248,7 +240,7 @@ function emitPlugin(){
         theme:sc?.theme||sd.theme||'dark'
       };
       const script=`(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`;
-      return html.replace('</head>',`  <script>${script}</script>\n  </head>`);
+      return html.replace('</head>',`<script>${script}</script></head>`);
     },
     async closeBundle(){
       const dist=path.resolve(__dirname,'dist');let fc=0;
@@ -261,7 +253,7 @@ function emitPlugin(){
           for(const f of fs2){fs.copyFileSync(path.join(sd,f),path.join(dd,f));fc++}
         }
       }catch{}
-      console.log(`  ✅ dist/pages/  (${fc} .md files)`);
+      console.log(`pages/ (${fc} .md files)`);
     }
   };
 }

@@ -341,3 +341,4 @@ const totalSteps = 4;
 .swokl{font-size:3rem;color:#10b981}
 .swokc h2{color:var(--color-text-primary);margin:0.5rem 0 0}
 .swokc p{color:var(--color-text-muted);font-size:var(--font-size-sm)}
+</style>

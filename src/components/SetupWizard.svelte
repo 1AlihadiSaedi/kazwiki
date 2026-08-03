@@ -51,8 +51,8 @@ function handleNext() {
 
 async function handleInstall() {
   error = '';
-  const ph = sha256(form.password);
-  const uh = sha256(form.username);
+  const ph = await sha256(form.password);
+  const uh = await sha256(form.username);
   const langs = ['fa', 'en'];
   for (const el of form.extraLanguages) {
     if (!langs.includes(el.code)) langs.push(el.code);
@@ -61,7 +61,6 @@ async function handleInstall() {
     ? { fa: form.wikiTitle, en: form.wikiTitle }
     : { fa: 'ویکی زمردین', en: 'Emerald Wiki' };
 
-  // First: save everything to localStorage (local fallback)
   saveSiteConfig({
     username: form.username,
     passwordHash: ph,
@@ -84,7 +83,6 @@ async function handleInstall() {
   localStorage.setItem('emerald-wiki-i18n', JSON.stringify(DEFAULT_TRANSLATIONS));
   localStorage.setItem('emerald-wiki-version', '2');
 
-  // Then: save credentials to server
   try {
     const res = await fetch('/api/install', {
       method: 'POST',
@@ -207,7 +205,6 @@ const totalSteps = 4;
       </select>
     </div>
     <div class="sfg">
-      <!-- svelte-ignore a11y_label_has_associated_control -->
       <label class="sfl">{t('extraLangs')}</label>
       <div class="sad">
         <input id="sw-lc" class="sfi swi" type="text" placeholder="code" bind:value={newLangCode} autocomplete="off" />
@@ -229,7 +226,6 @@ const totalSteps = 4;
       <input id="sw-wt" class="sfi" type="text" bind:value={form.wikiTitle} autocomplete="off" placeholder="Emerald Wiki" />
     </div>
     <div class="sfg">
-      <!-- svelte-ignore a11y_label_has_associated_control -->
       <label class="sfl">{t('wikiIcon')}</label>
       {#if form.wikiIcon}
         <div class="sip">
@@ -345,4 +341,3 @@ const totalSteps = 4;
 .swokl{font-size:3rem;color:#10b981}
 .swokc h2{color:var(--color-text-primary);margin:0.5rem 0 0}
 .swokc p{color:var(--color-text-muted);font-size:var(--font-size-sm)}
-</style>

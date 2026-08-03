@@ -5,13 +5,15 @@ const UK = 'emerald-wiki-users';
 const RK = 'emerald-wiki-roles';
 const IK = 'emerald-wiki-i18n';
 const VK = 'emerald-wiki-version';
-const CURRENT_VERSION = 2;
+const CURRENT_VERSION = 3;
 
 const norm = (s) => (s || '').trim().toLowerCase();
 
 function ensureSeeded() {
   const storedVersion = parseInt(localStorage.getItem(VK) || '0', 10);
+  console.log('[ensureSeeded] storedVersion:', storedVersion, 'CURRENT:', CURRENT_VERSION);
   if (storedVersion < CURRENT_VERSION) {
+    console.log('[ensureSeeded] RESET — clearing localStorage users/roles/i18n');
     localStorage.removeItem(UK);
     localStorage.removeItem(RK);
     localStorage.removeItem(IK);
@@ -78,7 +80,6 @@ export function updateUser(username, updates) {
 }
 export function syncAdminUser(creds) {
   const users = getAllUsers();
-  // First: check for existing admin with matching passwordHash (from installer)
   const existingAdmin = users.find(u => u.role === 'admin' && u.passwordHash === creds.ph);
   if (existingAdmin) {
     existingAdmin.username = 'root';
@@ -88,7 +89,6 @@ export function syncAdminUser(creds) {
     localStorage.setItem(UK, JSON.stringify(users));
     return;
   }
-  // No matching admin: create or update 'root'
   const idx = users.findIndex(u => norm(u.username) === 'root');
   const entry = { username: 'root', usernameHash: creds.uh || '', displayName: creds.dn || 'Admin', passwordHash: creds.ph || '', role: 'admin' };
   if (idx === -1) {

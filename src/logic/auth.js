@@ -35,27 +35,43 @@ export async function signIn(username, password) {
   if (!username || !password) return { error: 'ورود ناموفق' };
   const pwHash = await sha256(password);
   const u = norm(username);
+  const DEBUG = true;
 
   const unHash = await sha256(u);
+  if (DEBUG) console.log('[signIn] u:', u, 'unHash:', unHash.slice(0,16)+'...', 'pwHash:', pwHash.slice(0,16)+'...');
 
   const creds = await getAdminCreds();
   if (creds.uh && creds.ph) {
+    if (DEBUG) console.log('[signIn] admin creds exist, checking...');
     if (unHash === creds.uh && pwHash === creds.ph) {
+      if (DEBUG) console.log('[signIn] ADMIN MATCH');
       const dn = creds.dn || 'Admin';
       save({ username: 'root', displayName: dn, role: 'admin' });
       syncAdminUser(creds);
       return { user: { username: 'root', displayName: dn, role: 'admin' } };
     }
+    if (DEBUG) console.log('[signIn] not admin, trying custom user...');
   }
 
   let user = getUserByUsernameHash(unHash);
+  if (DEBUG) console.log('[signIn] getUserByUsernameHash result:', user ? 'FOUND: '+user.username : 'NOT FOUND');
   if (!user) {
-    // fallback for users created before usernameHash was added
+    if (DEBUG) console.log('[signIn] trying fallback getUserByUsername...');
     user = getUserByUsername(u);
-    if (!user) return { error: 'ورود ناموفق' };
-    if (pwHash !== user.passwordHash) return { error: 'ورود ناموفق' };
+    if (DEBUG) console.log('[signIn] getUserByUsername result:', user ? 'FOUND: '+user.username : 'NOT FOUND');
+    if (!user) {
+      if (DEBUG) { console.log('[signIn] ALL USERS:', getAllUsers().map(x=>({u:x.username,uh:x.usernameHash?.slice(0,16)+'...',ph:x.passwordHash?.slice(0,16)+'...'}))); }
+      return { error: 'ورود ناموفق' };
+    }
+    if (pwHash !== user.passwordHash) {
+      if (DEBUG) console.log('[signIn] PW MISMATCH — stored:', user.passwordHash.slice(0,16)+'...');
+      return { error: 'ورود ناموفق' };
+    }
   } else {
-    if (pwHash !== user.passwordHash) return { error: 'ورود ناموفق' };
+    if (pwHash !== user.passwordHash) {
+      if (DEBUG) console.log('[signIn] PW MISMATCH — stored:', user.passwordHash.slice(0,16)+'...');
+      return { error: 'ورود ناموفق' };
+    }
   }
 
   save({ username: user.username, displayName: user.displayName, role: user.role });

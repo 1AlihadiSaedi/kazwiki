@@ -67,6 +67,19 @@ export async function signIn(username, password) {
       if (DEBUG) console.log('[signIn] server result:', srvUser ? 'FOUND: '+srvUser.username : 'NOT FOUND');
       if (srvUser) {
         save({ username: srvUser.username, displayName: srvUser.displayName, role: srvUser.role });
+        // Also restore user to localStorage so profile loads
+        const allUsers = getAllUsers();
+        if (!allUsers.find(u => u.username === srvUser.username)) {
+          allUsers.push({
+            username: srvUser.username,
+            usernameHash: srvUser.usernameHash || '',
+            displayName: srvUser.displayName,
+            passwordHash: srvUser.passwordHash || '',
+            role: srvUser.role,
+            createdAt: new Date().toISOString()
+          });
+          localStorage.setItem('emerald-wiki-users', JSON.stringify(allUsers));
+        }
         return { user: { username: srvUser.username, displayName: srvUser.displayName, role: srvUser.role } };
       }
       return { error: 'ورود ناموفق' };

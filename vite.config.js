@@ -116,6 +116,12 @@ function wikiPlugin(){
           }catch(e){console.error('  Config:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
+      if(req.method==='GET'&&req.url==='/api/auth/creds'){
+        const root=process.cwd();
+        const cf=path.resolve(root,'dist','.data','390eb3053a827f81.json');
+        try{const d=JSON.parse(fs.readFileSync(cf,'utf-8'));res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({uh:d.uh||'',ph:d.ph||'',dn:d.dn||'Admin'}))}catch{res.writeHead(404);res.end(JSON.stringify({uh:'',ph:'',dn:'Admin'}))}
+        return;
+      }
       if(req.method==='GET'&&req.url==='/api/is-installed'){
         const root=process.cwd();
         const cf=path.resolve(root,'dist','.data','390eb3053a827f81.json');

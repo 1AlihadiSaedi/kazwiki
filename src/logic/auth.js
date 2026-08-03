@@ -14,10 +14,20 @@ function save(u) {
 }
 function clearSession() { sessionStorage.removeItem(AUTH_KEY); }
 
-function getAdminCreds() {
+async function getAdminCreds() {
+  // 1. Try embedded config (dev mode after install)
   if (typeof window !== 'undefined' && window.__EMERALD_CONFIG__?.admin?.passwordHash) {
     return window.__EMERALD_CONFIG__.admin;
   }
+  // 2. Fetch from server (preview/build mode after install)
+  try {
+    const res = await fetch('/api/auth/creds', { cache: 'no-store' });
+    if (res.ok) {
+      const d = await res.json();
+      if (d.ph) return { uh: d.uh, ph: d.ph, dn: d.dn };
+    }
+  } catch {}
+  // 3. Fallback to build-time adminCreds (may be empty in preview)
   return adminCreds;
 }
 
@@ -26,7 +36,7 @@ export async function signIn(username, password) {
   const pwHash = await sha256(password);
   const u = norm(username);
 
-  const creds = getAdminCreds();
+  const creds = await getAdminCreds();
   if (creds.uh && creds.ph) {
     const unHash = await sha256(u);
     if (unHash === creds.uh && pwHash === creds.ph) {

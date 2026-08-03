@@ -107,6 +107,17 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { ok: true, file: `${safe}.${body.lang}.md`, verified });
   }
 
+  // /api/auth/creds return admin credentials (hashed)
+  if (req.method === 'GET' && req.url === '/api/auth/creds') {
+    const cf = path.join(dataDir, '390eb3053a827f81.json');
+    try {
+      const d = JSON.parse(fs.readFileSync(cf, 'utf-8'));
+      return sendJson(res, 200, { uh: d.uh || '', ph: d.ph || '', dn: d.dn || 'Admin' });
+    } catch {
+      return sendJson(res, 404, { uh: '', ph: '', dn: 'Admin' });
+    }
+  }
+
   // /api/is-installed check if installed
   if (req.method === 'GET' && req.url === '/api/is-installed') {
     const cf = path.join(dataDir, '390eb3053a827f81.json');
@@ -126,6 +137,6 @@ const server = http.createServer(async (req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, () => console.log(`  Save server:  http://localhost:${PORT}\n     /api/install  /api/config  /api/is-installed  /save`));
+server.listen(PORT, () => console.log(`  Save server:  http://localhost:${PORT}\n     /api/install  /api/config  /api/auth/creds  /api/is-installed  /save`));
 process.on('SIGTERM', () => { server.close(); process.exit(0); });
 process.on('SIGINT', () => { server.close(); process.exit(0); });

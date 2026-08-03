@@ -1,10 +1,9 @@
-<script>import{t}from'../logic/i18n.js';import{getPageContent,parseMarkdown,fetchLiveContent}from'../logic/wiki.js';import{getSession,hasPermission}from'../logic/auth.js';let{slug='home',lang='fa',user={username:''},role=''}=$props();let myRole=$state(role);let pageCreator=$state(null);let pageExists=$state(true);let rawMarkdown=$derived(getPageContent(slug,lang)||'');let editorContent=$state('');let previewHtml=$derived(parseMarkdown(editorContent));let mode=$state('write');let saving=$state(false);let toast=$state(null);let showDelete=$state(false);let deleteInput=$state('');let deleting=$state(false);$effect(()=>{editorContent=getPageContent(slug,lang)||'';fetchLiveContent(slug,lang).then(c=>{if(c)editorContent=c});loadPageMeta()});
+<script>import{t}from'../logic/i18n.js';import{getPageContent,parseMarkdown,fetchLiveContent}from'../logic/wiki.js';import{getSession,hasPermission}from'../logic/auth.js';let{slug='home',lang='fa',user={username:''},role=''}=$props();let myRole=$derived(role);let pageCreator=$state(null);let pageExists=$state(true);let rawMarkdown=$derived(getPageContent(slug,lang)||'');let editorContent=$state('');let previewHtml=$derived(parseMarkdown(editorContent));let mode=$state('write');let saving=$state(false);let toast=$state(null);let showDelete=$state(false);let deleteInput=$state('');let deleting=$state(false);$effect(()=>{editorContent=getPageContent(slug,lang)||'';fetchLiveContent(slug,lang).then(c=>{if(c)editorContent=c});loadPageMeta()});
 async function loadPageMeta(){
   try{
     const r=await fetch(`/api/page-meta?slug=${encodeURIComponent(slug)}&lang=${encodeURIComponent(lang)}`);
     if(r.ok){const m=await r.json();if(m&&m.creator){pageCreator=m.creator}}
   }catch{}
-  // Page exists if it has content (fallback for pre-metadata pages)
   pageExists=!!(rawMarkdown);
   if(pageExists&&!canEdit()&&myRole){
     setTimeout(()=>{window.location.hash='#'+lang+'/'+slug;window.location.reload()},300);

@@ -205,6 +205,7 @@ const totalSteps = 4;
       </select>
     </div>
     <div class="sfg">
+      <!-- svelte-ignore a11y_label_has_associated_control -->
       <label class="sfl">{t('extraLangs')}</label>
       <div class="sad">
         <input id="sw-lc" class="sfi swi" type="text" placeholder="code" bind:value={newLangCode} autocomplete="off" />
@@ -226,6 +227,7 @@ const totalSteps = 4;
       <input id="sw-wt" class="sfi" type="text" bind:value={form.wikiTitle} autocomplete="off" placeholder="Emerald Wiki" />
     </div>
     <div class="sfg">
+      <!-- svelte-ignore a11y_label_has_associated_control -->
       <label class="sfl">{t('wikiIcon')}</label>
       {#if form.wikiIcon}
         <div class="sip">

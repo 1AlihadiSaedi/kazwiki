@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import fs from 'node:fs';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const contentDir=path.resolve(__dirname,'src/wiki-content');
@@ -48,7 +48,7 @@ function wikiPlugin(){
       if(req.method==='POST'&&req.url==='/api/save'){
         let body='';req.on('data',c=>body+=c);req.on('end',()=>{
           try{
-            const{slug,lang,content}=JSON.parse(body);
+            const{slug,lang,content,creator}=JSON.parse(body);
             const safe=slug.replace(/[^a-zA-Z0-9_-]/g,'');
             const file=path.join(contentDir,lang,`${safe}.md`);
             fs.mkdirSync(path.dirname(file),{recursive:true});
@@ -57,6 +57,15 @@ function wikiPlugin(){
             try{fs.mkdirSync(path.dirname(df),{recursive:true});fs.copyFileSync(file,df)}catch{}
             const v=fs.readFileSync(file,'utf-8')===content;
             console.log(`  💾 Saved: ${lang}/${safe}.md  (${content.length}B, v=${v})`);
+            // Track page creator (only on first save)
+            const metaFile = path.join(root, 'dist', '.data', 'page-meta.json');
+            let meta = {}; try{ meta=JSON.parse(fs.readFileSync(metaFile,'utf-8')); }catch{}
+            const metaKey = `${lang}:${safe}`;
+            if (!meta[metaKey]) {
+              meta[metaKey] = { creator: creator || 'unknown', createdAt: new Date().toISOString() };
+              fs.mkdirSync(path.dirname(metaFile), {recursive: true});
+              fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2));
+            }
             res.writeHead(200,{'Content-Type':'application/json'});
             res.end(JSON.stringify({ok:true,file:`${lang}/${safe}.md`,verified:v}));
           }catch(e){console.error('  ❌ Save:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
@@ -182,6 +191,24 @@ function wikiPlugin(){
           res.writeHead(200,{'Content-Type':'application/json'}); res.end(JSON.stringify({ok:true}));
           return;
         }
+      }
+
+      // ── /api/page-meta ── read page metadata (creator, etc.)
+      const pageMetaFile = path.join(process.cwd(), 'dist', '.data', 'page-meta.json');
+      if(req.method === 'GET' && req.url && req.url.startsWith('/api/page-meta')){
+        const pu = new URL(req.url, 'http://localhost');
+        let meta = {}; try{ meta=JSON.parse(fs.readFileSync(pageMetaFile,'utf-8')); }catch{}
+        const pSlug = pu.searchParams.get('slug');
+        const pLang = pu.searchParams.get('lang');
+        if(pSlug && pLang){
+          const key = `${pLang}:${pSlug}`;
+          res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});
+          res.end(JSON.stringify(meta[key] || {}));
+          return;
+        }
+        res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});
+        res.end(JSON.stringify(meta));
+        return;
       }
 
       if(req.url.startsWith('/.data/')){

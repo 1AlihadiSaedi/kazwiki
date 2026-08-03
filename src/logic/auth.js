@@ -38,6 +38,7 @@ export async function signIn(username, password) {
   const DEBUG = true;
 
   const unHash = await sha256(u);
+  alert('[signIn v3] username=' + u + '\nunHash=' + unHash.slice(0,8) + '...\npwHash=' + pwHash.slice(0,8) + '...');
   if (DEBUG) console.log('[signIn] u:', u, 'unHash:', unHash.slice(0,16)+'...', 'pwHash:', pwHash.slice(0,16)+'...');
 
   const creds = await getAdminCreds();

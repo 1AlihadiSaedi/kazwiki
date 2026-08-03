@@ -81,6 +81,7 @@ export function syncAdminUser(creds) {
   // First: check for existing admin with matching passwordHash (from installer)
   const existingAdmin = users.find(u => u.role === 'admin' && u.passwordHash === creds.ph);
   if (existingAdmin) {
+    existingAdmin.username = 'root';
     existingAdmin.passwordHash = creds.ph || existingAdmin.passwordHash;
     existingAdmin.usernameHash = creds.uh || existingAdmin.usernameHash || '';
     existingAdmin.displayName = creds.dn || existingAdmin.displayName;

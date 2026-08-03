@@ -38,12 +38,12 @@ function readBody(req) {
 
 const server = http.createServer(async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-  // /api/install create credentials & site-config on first install
+  // ── /api/install ── create credentials & site-config on first install
   if (req.method === 'POST' && req.url === '/api/install') {
     const body = await readBody(req);
     if (!body || !body.ph || !body.uh) {
@@ -57,6 +57,7 @@ const server = http.createServer(async (req, res) => {
       installedAt: new Date().toISOString()
     });
 
+    // Also save initial site config
     const siteFile = path.join(dataDir, 'site-config.json');
     writeJson(siteFile, {
       defaultLanguage: body.defaultLanguage || 'en',
@@ -68,11 +69,11 @@ const server = http.createServer(async (req, res) => {
       installedAt: new Date().toISOString()
     });
 
-    console.log('  Install complete:', body.dn || body.uh);
+    console.log('  🔐 Install complete:', body.dn || body.uh);
     return sendJson(res, 200, { ok: true });
   }
 
-  // /api/config read / update site config
+  // ── /api/config ── read / update site config
   if (req.url === '/api/config') {
     const siteFile = path.join(dataDir, 'site-config.json');
 
@@ -88,12 +89,12 @@ const server = http.createServer(async (req, res) => {
       const existing = readJson(siteFile) || {};
       const merged = { ...existing, ...body, updatedAt: new Date().toISOString() };
       writeJson(siteFile, merged);
-      console.log('  Config updated');
+      console.log('  ⚙️  Config updated');
       return sendJson(res, 200, { ok: true, config: merged });
     }
   }
 
-  // /save save a wiki page
+  // ── /save ── save a wiki page
   if (req.method === 'POST' && req.url === '/save') {
     const body = await readBody(req);
     if (!body || !body.slug || !body.lang || body.content == null) {
@@ -103,11 +104,11 @@ const server = http.createServer(async (req, res) => {
     const file = path.join(contentDir, `${safe}.${body.lang}.md`);
     fs.writeFileSync(file, body.content, 'utf-8');
     const verified = fs.readFileSync(file, 'utf-8') === body.content;
-    console.log(`  Saved: ${safe}.${body.lang}.md  (${body.content.length}B, verified=${verified})`);
+    console.log(`  💾 Saved: ${safe}.${body.lang}.md  (${body.content.length}B, verified=${verified})`);
     return sendJson(res, 200, { ok: true, file: `${safe}.${body.lang}.md`, verified });
   }
 
-  // /api/auth/creds return admin credentials (hashed)
+  // ── /api/auth/creds ── return admin credentials (hashed)
   if (req.method === 'GET' && req.url === '/api/auth/creds') {
     const cf = path.join(dataDir, '390eb3053a827f81.json');
     try {
@@ -118,7 +119,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // /api/is-installed check if installed
+  // ── /api/is-installed ── check if installed
   if (req.method === 'GET' && req.url === '/api/is-installed') {
     const cf = path.join(dataDir, '390eb3053a827f81.json');
     try {
@@ -129,6 +130,56 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  // ── /api/users ── server-side user storage
+  const usersFile = path.join(dataDir, 'users.json');
+
+  if (req.url && req.url.startsWith('/api/users')) {
+    const u = new URL(req.url, 'http://localhost');
+    const qUsername = u.searchParams.get('username');
+    const qUh = u.searchParams.get('usernameHash');
+
+    if (req.method === 'GET') {
+      const users = readJson(usersFile) || [];
+      if (qUh) {
+        const user = users.find(x => x.usernameHash === qUh);
+        return sendJson(res, user ? 200 : 404, user || null);
+      }
+      return sendJson(res, 200, users);
+    }
+
+    if (req.method === 'POST') {
+      const body = await readBody(req);
+      if (!body || !body.username) return sendJson(res, 400, { ok: false });
+      const users = readJson(usersFile) || [];
+      const idx = users.findIndex(x => x.username === body.username);
+      const entry = {
+        username: body.username,
+        usernameHash: body.usernameHash || '',
+        displayName: body.displayName || body.username,
+        passwordHash: body.passwordHash || '',
+        role: body.role || 'author',
+        updatedAt: new Date().toISOString()
+      };
+      if (idx >= 0) {
+        users[idx] = { ...users[idx], ...entry, createdAt: users[idx].createdAt || entry.updatedAt };
+      } else {
+        entry.createdAt = entry.updatedAt;
+        users.push(entry);
+      }
+      writeJson(usersFile, users);
+      return sendJson(res, 200, { ok: true });
+    }
+
+    if (req.method === 'DELETE') {
+      if (!qUsername) return sendJson(res, 400, { ok: false });
+      let users = readJson(usersFile) || [];
+      users = users.filter(x => x.username !== qUsername);
+      writeJson(usersFile, users);
+      return sendJson(res, 200, { ok: true });
+    }
+  }
+
+  // ── health check ──
   if (req.method === 'GET' && req.url === '/api/health') {
     return sendJson(res, 200, { ok: true, status: 'running' });
   }
@@ -137,6 +188,6 @@ const server = http.createServer(async (req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, () => console.log(`  Save server:  http://localhost:${PORT}\n     /api/install  /api/config  /api/auth/creds  /api/is-installed  /save`));
+server.listen(PORT, () => console.log(`  💾 Save server:  http://localhost:${PORT}\n     /api/install  /api/config  /save`));
 process.on('SIGTERM', () => { server.close(); process.exit(0); });
 process.on('SIGINT', () => { server.close(); process.exit(0); });

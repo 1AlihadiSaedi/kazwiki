@@ -33,6 +33,26 @@ function ensureSeeded() {
 }
 if (typeof localStorage !== 'undefined') ensureSeeded();
 
+async function syncUserToServer(user, isDelete) {
+  try {
+    if (isDelete) {
+      await fetch('/api/users?username=' + encodeURIComponent(user.username), { method: 'DELETE' });
+    } else {
+      await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user.username,
+          usernameHash: user.usernameHash || '',
+          displayName: user.displayName,
+          passwordHash: user.passwordHash || '',
+          role: user.role
+        })
+      });
+    }
+  } catch(e) { /* server unavailable */ }
+}
+
 export function getAllUsers() {
   try { return JSON.parse(localStorage.getItem(UK)) || []; } catch { return []; }
 }
@@ -53,17 +73,21 @@ export function createUser({ username, usernameHash, password, displayName, role
   if (users.find(u => norm(u.username) === n)) { console.log('[createUser] FAIL: username taken'); return { error: 'username_taken' }; }
   if (!password) { console.log('[createUser] FAIL: password required'); return { error: 'password_required' }; }
   if (users.find(u => u.usernameHash && u.usernameHash === usernameHash)) { console.log('[createUser] FAIL: usernameHash conflict'); return { error: 'username_taken' }; }
-  users.push({ username: n, usernameHash: usernameHash || '', displayName, passwordHash: password, role, createdAt: new Date().toISOString() });
+  const newUser = { username: n, usernameHash: usernameHash || '', displayName, passwordHash: password, role, createdAt: new Date().toISOString() };
+  users.push(newUser);
   console.log('[createUser] SAVED user:', n, 'total users:', users.length);
   localStorage.setItem(UK, JSON.stringify(users));
+  syncUserToServer(newUser);
   return { ok: true };
 }
 export function deleteUser(username) {
   let users = getAllUsers();
   const q = norm(username);
   if (q === 'root') return { error: 'cannot_delete_root' };
+  const removed = users.find(u => norm(u.username) === q);
   users = users.filter(u => norm(u.username) !== q);
   localStorage.setItem(UK, JSON.stringify(users));
+  if (removed) syncUserToServer(removed, true);
   return { ok: true };
 }
 export function updateUser(username, updates) {
@@ -73,10 +97,12 @@ export function updateUser(username, updates) {
   if (idx === -1) return { error: 'not_found' };
   Object.assign(users[idx], updates);
   localStorage.setItem(UK, JSON.stringify(users));
+  syncUserToServer(users[idx]);
   return { ok: true };
 }
 export function syncAdminUser(creds) {
   const users = getAllUsers();
+  // First: check for existing admin with matching passwordHash (from installer)
   const existingAdmin = users.find(u => u.role === 'admin' && u.passwordHash === creds.ph);
   if (existingAdmin) {
     existingAdmin.username = 'root';
@@ -84,8 +110,10 @@ export function syncAdminUser(creds) {
     existingAdmin.usernameHash = creds.uh || existingAdmin.usernameHash || '';
     existingAdmin.displayName = creds.dn || existingAdmin.displayName;
     localStorage.setItem(UK, JSON.stringify(users));
+    syncUserToServer(existingAdmin);
     return;
   }
+  // No matching admin: create or update 'root'
   const idx = users.findIndex(u => norm(u.username) === 'root');
   const entry = { username: 'root', usernameHash: creds.uh || '', displayName: creds.dn || 'Admin', passwordHash: creds.ph || '', role: 'admin' };
   if (idx === -1) {
@@ -99,6 +127,7 @@ export function syncAdminUser(creds) {
     }
   }
   localStorage.setItem(UK, JSON.stringify(users));
+  syncUserToServer(users.find(u => norm(u.username) === 'root'));
 }
 
 export function getAllRoles() {

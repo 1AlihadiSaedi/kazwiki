@@ -62,6 +62,13 @@ export async function signIn(username, password) {
     if (DEBUG) console.log('[signIn] getUserByUsername result:', user ? 'FOUND: '+user.username : 'NOT FOUND');
     if (!user) {
       if (DEBUG) { console.log('[signIn] ALL USERS:', getAllUsers().map(x=>({u:x.username,uh:x.usernameHash?.slice(0,16)+'...',ph:x.passwordHash?.slice(0,16)+'...'}))); }
+      if (DEBUG) console.log('[signIn] trying server fallback...');
+      const srvUser = await tryServerLogin(unHash, pwHash);
+      if (DEBUG) console.log('[signIn] server result:', srvUser ? 'FOUND: '+srvUser.username : 'NOT FOUND');
+      if (srvUser) {
+        save({ username: srvUser.username, displayName: srvUser.displayName, role: srvUser.role });
+        return { user: { username: srvUser.username, displayName: srvUser.displayName, role: srvUser.role } };
+      }
       return { error: 'ورود ناموفق' };
     }
     if (pwHash !== user.passwordHash) {
@@ -77,6 +84,17 @@ export async function signIn(username, password) {
 
   save({ username: user.username, displayName: user.displayName, role: user.role });
   return { user: { username: user.username, displayName: user.displayName, role: user.role } };
+}
+
+async function tryServerLogin(unHash, pwHash) {
+  try {
+    const res = await fetch('/api/users?usernameHash=' + encodeURIComponent(unHash));
+    if (!res.ok) return null;
+    const srvUser = await res.json();
+    if (!srvUser || !srvUser.passwordHash) return null;
+    if (srvUser.passwordHash !== pwHash) return null;
+    return srvUser;
+  } catch { return null; }
 }
 
 export async function signOut() { clearSession(); }

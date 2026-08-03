@@ -73,6 +73,7 @@ async function handleInstall() {
   });
   localStorage.setItem('emerald-wiki-users', JSON.stringify([{
     username: form.username,
+    usernameHash: uh,
     displayName: form.displayName,
     passwordHash: ph,
     role: 'admin',

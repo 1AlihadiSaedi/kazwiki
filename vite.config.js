@@ -58,7 +58,7 @@ function wikiPlugin(){
             const v=fs.readFileSync(file,'utf-8')===content;
             console.log(`  💾 Saved: ${lang}/${safe}.md  (${content.length}B, v=${v})`);
             // Track page creator (only on first save)
-            const metaFile = path.join(root, 'dist', '.data', 'page-meta.json');
+            const metaFile = path.join(process.cwd(), 'dist', '.data', 'page-meta.json');
             let meta = {}; try{ meta=JSON.parse(fs.readFileSync(metaFile,'utf-8')); }catch{}
             const metaKey = `${lang}:${safe}`;
             if (!meta[metaKey]) {

@@ -1,30 +1,23 @@
 const CK = 'emerald-wiki-config';
-const CREDS_URL = '/.data/390eb3053a827f81.json';
-const CONFIG_API = '/api/config';
+const API_BASE = '';
 
-// isInstalled: check if admin credentials exist
-// 1. Fast: window.__EMERALD_CONFIG__ (dev mode, embedded by vite)
-// 2. Reliable: fetch credentials file from server (preview/build mode)
+// isInstalled: single source of truth — ask the server
 export async function isInstalled() {
-  if (typeof window !== 'undefined') {
-    const ec = window.__EMERALD_CONFIG__;
-    if (ec?.admin?.usernameHash) return true;
-  }
   try {
-    const res = await fetch(CREDS_URL, { cache: 'no-store' });
-    if (!res.ok) return false;
-    const data = await res.json();
-    return data?.ph?.length > 0;
-  } catch {
-    return false;
-  }
+    const res = await fetch(`${API_BASE}/api/is-installed`, { cache: 'no-store' });
+    if (res.ok) {
+      const { installed } = await res.json();
+      return !!installed;
+    }
+  } catch {}
+  return false;
 }
 
 // getSiteConfig: get the user's site configuration
 // Prefer server API (has actual user config), fallback to embedded
 export async function getSiteConfig() {
   try {
-    const res = await fetch(CONFIG_API, { cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/api/config`, { cache: 'no-store' });
     if (res.ok) {
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('json')) {
@@ -58,7 +51,7 @@ export function saveSiteConfig({ username, passwordHash, displayName, defaultLan
 
 export async function updateSiteConfig(updates) {
   try {
-    await fetch(CONFIG_API, {
+    await fetch(`${API_BASE}/api/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)

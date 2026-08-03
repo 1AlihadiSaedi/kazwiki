@@ -107,6 +107,17 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { ok: true, file: `${safe}.${body.lang}.md`, verified });
   }
 
+  // /api/is-installed check if installed
+  if (req.method === 'GET' && req.url === '/api/is-installed') {
+    const cf = path.join(dataDir, '390eb3053a827f81.json');
+    try {
+      const d = JSON.parse(fs.readFileSync(cf, 'utf-8'));
+      return sendJson(res, 200, { installed: !!(d.uh && d.ph) });
+    } catch {
+      return sendJson(res, 200, { installed: false });
+    }
+  }
+
   if (req.method === 'GET' && req.url === '/api/health') {
     return sendJson(res, 200, { ok: true, status: 'running' });
   }
@@ -115,7 +126,6 @@ const server = http.createServer(async (req, res) => {
   res.end('Not found');
 });
 
-server.listen(PORT, () => console.log(`  Save server:  http://localhost:${PORT}
-     /api/install  /api/config  /save`));
+server.listen(PORT, () => console.log(`  Save server:  http://localhost:${PORT}\n     /api/install  /api/config  /api/is-installed  /save`));
 process.on('SIGTERM', () => { server.close(); process.exit(0); });
 process.on('SIGINT', () => { server.close(); process.exit(0); });

@@ -116,6 +116,12 @@ function wikiPlugin(){
           }catch(e){console.error('  Config:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
+      if(req.method==='GET'&&req.url==='/api/is-installed'){
+        const root=process.cwd();
+        const cf=path.resolve(root,'dist','.data','390eb3053a827f81.json');
+        try{const d=JSON.parse(fs.readFileSync(cf,'utf-8'));res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({installed:!!(d.uh&&d.ph)}))}catch{res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({installed:false}))}
+        return;
+      }
       if(req.url.startsWith('/.data/')){
         const fp=path.join(process.cwd(),'dist',req.url.slice(1));
         try{const fc=fs.readFileSync(fp,'utf-8');res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(fc)}catch{res.writeHead(404,{'Cache-Control':'no-store'});res.end('Not found')}

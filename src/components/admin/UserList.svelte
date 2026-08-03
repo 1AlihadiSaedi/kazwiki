@@ -17,7 +17,8 @@ async function handleAdd() {
   if (!form.username) { error = t(lang, 'usernameRequired'); return; }
   if (!form.password) { error = t(lang, 'passwordRequired'); return; }
   const ph = await sha256(form.password);
-  const r = createUser({ username: form.username, password: ph, displayName: form.displayName || form.username, role: form.role });
+  const uh = await sha256(form.username.trim().toLowerCase());
+  const r = createUser({ username: form.username, usernameHash: uh, password: ph, displayName: form.displayName || form.username, role: form.role });
   if (r.error) { error = t(lang, r.error === 'username_taken' ? 'usernameTaken' : 'usernameRequired'); return; }
   showAdd = false;
   form = { username: '', password: '', displayName: '', role: 'author' };

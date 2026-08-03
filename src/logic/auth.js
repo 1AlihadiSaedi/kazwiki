@@ -1,5 +1,5 @@
 import { sha256 } from './crypto.js';
-import { getAllUsers, getUserByUsername, getPermissionsForRole, syncAdminUser } from './db.js';
+import { getAllUsers, getUserByUsername, getUserByUsernameHash, getPermissionsForRole, syncAdminUser } from './db.js';
 import adminCreds from 'virtual:admin-creds';
 
 const AUTH_KEY = 'emerald-wiki-session';
@@ -36,9 +36,10 @@ export async function signIn(username, password) {
   const pwHash = await sha256(password);
   const u = norm(username);
 
+  const unHash = await sha256(u);
+
   const creds = await getAdminCreds();
   if (creds.uh && creds.ph) {
-    const unHash = await sha256(u);
     if (unHash === creds.uh && pwHash === creds.ph) {
       const dn = creds.dn || 'Admin';
       save({ username: 'root', displayName: dn, role: 'admin' });
@@ -47,7 +48,7 @@ export async function signIn(username, password) {
     }
   }
 
-  const user = getUserByUsername(u);
+  const user = getUserByUsernameHash(unHash);
   if (!user) return { error: 'ورود ناموفق' };
   if (pwHash !== user.passwordHash) return { error: 'ورود ناموفق' };
 

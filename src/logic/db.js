@@ -22,6 +22,7 @@ function ensureSeeded() {
   if (!localStorage.getItem(UK)) {
     const users = [{
       username: 'root',
+      usernameHash: adminCreds.uh || '',
       displayName: adminCreds.dn || 'Admin',
       passwordHash: adminCreds.ph || '',
       role: 'admin',
@@ -43,13 +44,18 @@ export function getUserByUsername(username) {
   const q = norm(username);
   return getAllUsers().find(u => norm(u.username) === q);
 }
-export function createUser({ username, password, displayName, role }) {
+export function getUserByUsernameHash(hash) {
+  if (!hash) return null;
+  return getAllUsers().find(u => u.usernameHash === hash);
+}
+export function createUser({ username, usernameHash, password, displayName, role }) {
   const users = getAllUsers();
   const n = norm(username);
   if (!n) return { error: 'username_required' };
   if (users.find(u => norm(u.username) === n)) return { error: 'username_taken' };
   if (!password) return { error: 'password_required' };
-  users.push({ username: n, displayName, passwordHash: password, role, createdAt: new Date().toISOString() });
+  if (users.find(u => u.usernameHash && u.usernameHash === usernameHash)) return { error: 'username_taken' };
+  users.push({ username: n, usernameHash: usernameHash || '', displayName, passwordHash: password, role, createdAt: new Date().toISOString() });
   localStorage.setItem(UK, JSON.stringify(users));
   return { ok: true };
 }
@@ -72,14 +78,25 @@ export function updateUser(username, updates) {
 }
 export function syncAdminUser(creds) {
   const users = getAllUsers();
+  // First: check for existing admin with matching passwordHash (from installer)
+  const existingAdmin = users.find(u => u.role === 'admin' && u.passwordHash === creds.ph);
+  if (existingAdmin) {
+    existingAdmin.passwordHash = creds.ph || existingAdmin.passwordHash;
+    existingAdmin.usernameHash = creds.uh || existingAdmin.usernameHash || '';
+    existingAdmin.displayName = creds.dn || existingAdmin.displayName;
+    localStorage.setItem(UK, JSON.stringify(users));
+    return;
+  }
+  // No matching admin: create or update 'root'
   const idx = users.findIndex(u => norm(u.username) === 'root');
-  const entry = { username: 'root', displayName: creds.dn || 'Admin', passwordHash: creds.ph || '', role: 'admin' };
+  const entry = { username: 'root', usernameHash: creds.uh || '', displayName: creds.dn || 'Admin', passwordHash: creds.ph || '', role: 'admin' };
   if (idx === -1) {
     entry.createdAt = new Date().toISOString();
     users.push(entry);
   } else {
     if (!users[idx].passwordHash || users[idx].passwordHash !== creds.ph) {
       users[idx].passwordHash = creds.ph;
+      users[idx].usernameHash = creds.uh || users[idx].usernameHash || '';
       users[idx].displayName = creds.dn || users[idx].displayName;
     }
   }

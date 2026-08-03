@@ -44,7 +44,20 @@ $effect(()=>{
 $effect(()=>{try{restoreAuth()}catch{}});
 
 async function restoreAuth(){
-  try{const r=await getAuthState();if(r?.user){user=r.user;try{role=(await getMyProfile())?.role||'viewer'}catch{role='viewer'}}}catch{}
+  try{
+    const r=await getAuthState();
+    if(r?.user){
+      try{
+        const p=await getMyProfile();
+        if(p){user=r.user;role=p.role||'viewer'}
+        else{
+          // Stale session — user no longer exists, clear it
+          const{signOut}=await import('./logic/auth.js');
+          await signOut();
+        }
+      }catch{user=r.user;role='viewer'}
+    }
+  }catch{}
 }
 
 function rr(){

@@ -12,12 +12,6 @@ const norm = (s) => (s || '').trim().toLowerCase();
 function ensureSeeded() {
   const storedVersion = parseInt(localStorage.getItem(VK) || '0', 10);
   console.log('[ensureSeeded] storedVersion:', storedVersion, 'CURRENT:', CURRENT_VERSION);
-  if (storedVersion < CURRENT_VERSION) {
-    console.log('[ensureSeeded] RESET — clearing localStorage users/roles/i18n');
-    localStorage.removeItem(UK);
-    localStorage.removeItem(RK);
-    localStorage.removeItem(IK);
-  }
   if (!localStorage.getItem(RK)) {
     localStorage.setItem(RK, JSON.stringify(DEFAULT_ROLES));
   }

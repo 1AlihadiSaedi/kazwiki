@@ -82,7 +82,7 @@ function can(perm) { return hasPermission(role, perm); }
 
 const tabs = $derived.by(() => {
   const t = [{ id: 'profile', label: lang === 'en' ? 'Profile' : 'پروفایل', icon: 'user' }];
-  t.push({ id: 'wiki', label: lang === 'en' ? 'Wiki' : 'ویکی', icon: 'wiki' });
+  if (role === 'admin') t.push({ id: 'wiki', label: lang === 'en' ? 'Wiki' : 'ویکی', icon: 'wiki' });
   if (can('manage_users')) t.push({ id: 'users', label: lang === 'en' ? 'Users' : 'کاربران', icon: 'users' });
   if (can('manage_roles')) t.push({ id: 'roles', label: lang === 'en' ? 'Roles' : 'نقش‌ها', icon: 'roles' });
   if (can('manage_languages')) t.push({ id: 'languages', label: lang === 'en' ? 'Languages' : 'زبان‌ها', icon: 'lang' });

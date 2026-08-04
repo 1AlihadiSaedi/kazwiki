@@ -1,5 +1,5 @@
 <script>
-import'./styles/global.css';import{initTheme}from'./logic/theme.js';import{t,getDirection}from'./logic/i18n.js';
+import'./styles/global.css';import{onMount}from'svelte';import{initTheme}from'./logic/theme.js';import{t,getDirection}from'./logic/i18n.js';
 import{getAuthState,hasPermission}from'./logic/auth.js';import{getMyProfile}from'./logic/db.js';
 import{SITE_DEFAULTS}from'./config.js';import{isInstalled,getSiteConfig}from'./logic/config.js';
 import Header from'./components/Header.svelte';import Sidebar from'./components/Sidebar.svelte';
@@ -74,7 +74,7 @@ function rr(){
   const ql=pr.get('lang');if(ql==='en'||ql==='fa')lang=ql
 }
 
-window.addEventListener('hashchange',rr);rr();$effect(()=>{return()=>window.removeEventListener('hashchange',rr)});
+onMount(()=>{window.addEventListener('hashchange',rr);rr();return()=>window.removeEventListener('hashchange',rr)});
 
 function nav(s){window.location.hash='#'+lang+'/'+s}
 function go(rt){window.location.hash='#'+lang+'/'+rt}
@@ -94,7 +94,6 @@ function ss(v){
 }
 function ts(){so=!so;ss(so)}
 
-// svelte-ignore state_referenced_locally
 let _was=$state(typeof window!=='undefined'&&window.innerWidth<769);
 $effect(()=>{
   function rs(){

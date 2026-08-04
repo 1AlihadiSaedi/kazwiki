@@ -51,7 +51,6 @@ async function restoreAuth(){
         const p=await getMyProfile();
         if(p){user=r.user;role=p.role||'viewer'}
         else{
-          // Stale session — user no longer exists, clear it
           const{signOut}=await import('./logic/auth.js');
           await signOut();
         }
@@ -66,7 +65,7 @@ function rr(){
   const parts=p.replace(/^\//,'').split('/');
   const isEdit=parts[0]==='edit';if(isEdit)parts.shift();
   let lfp=null;
-  if(parts.length&&(sc.languages||['fa','en']).includes(parts[0]))lfp=parts.shift();
+  const allLangs=[...new Set([...(sc.languages||[]),'fa','en'])];if(parts.length&&allLangs.includes(parts[0]))lfp=parts.shift();
   if(lfp)lang=lfp;
   const f=parts[0];
   if(f==='login'){route='login';slug=f;edit=false}

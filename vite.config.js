@@ -32,14 +32,16 @@ function wikiPlugin(){
     }catch{}
     return pages;
   }
-  function addMiddleware(server){
+  function addMiddleware(server,isPreview){
     server.middlewares.use((req,res,next)=>{
       if (res.headersSent) { next(); return; }
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
       if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
-      if(req.method==='GET'&&req.url.startsWith('/pages/')&&req.url.endsWith('.md')){
+
+      if(!isPreview&&req.method==='GET'&&req.url.startsWith('/pages/')&&req.url.endsWith('.md')){
         const parts=req.url.split('/');const lang=parts[2];const fname=parts[3];
         if(!lang||!fname){res.writeHead(404);res.end('Not found');return}
         const srcFile=path.join(contentDir,lang,fname);
@@ -55,23 +57,23 @@ function wikiPlugin(){
           try{
             const{slug,lang,content,creator}=JSON.parse(body);
             const safe=slug.replace(/[^a-zA-Z0-9_-]/g,'');
-            const file=path.join(contentDir,lang,`${safe}.md`);
+            const file=path.join(contentDir,lang,safe+'.md');
             fs.mkdirSync(path.dirname(file),{recursive:true});
             fs.writeFileSync(file,content,'utf-8');
-            const df=path.resolve(__dirname,'dist','pages',lang,`${safe}.md`);
+            const df=path.resolve(__dirname,'dist','pages',lang,safe+'.md');
             try{fs.mkdirSync(path.dirname(df),{recursive:true});fs.copyFileSync(file,df)}catch{}
             const v=fs.readFileSync(file,'utf-8')===content;
-            console.log(`Saved: ${lang}/${safe}.md`);
+            console.log('Saved: '+lang+'/'+safe+'.md');
             const metaFile = path.join(process.cwd(), 'dist', '.data', 'page-meta.json');
             let meta = {}; try{ meta=JSON.parse(fs.readFileSync(metaFile,'utf-8')); }catch{}
-            const metaKey = `${lang}:${safe}`;
+            const metaKey = lang+':'+safe;
             if (!meta[metaKey]) {
               meta[metaKey] = { creator: creator || 'unknown', createdAt: new Date().toISOString() };
               fs.mkdirSync(path.dirname(metaFile), {recursive: true});
               fs.writeFileSync(metaFile, JSON.stringify(meta, null, 2));
             }
             res.writeHead(200,{'Content-Type':'application/json'});
-            res.end(JSON.stringify({ok:true,file:`${lang}/${safe}.md`,verified:v}));
+            res.end(JSON.stringify({ok:true,file:lang+'/'+safe+'.md',verified:v}));
           }catch(e){console.error('Save:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
       }
@@ -80,11 +82,11 @@ function wikiPlugin(){
           try{
             const{slug,lang}=JSON.parse(body);
             const safe=slug.replace(/[^a-zA-Z0-9_-]/g,'');
-            const file=path.join(contentDir,lang,`${safe}.md`);
+            const file=path.join(contentDir,lang,safe+'.md');
             if(fs.existsSync(file))fs.unlinkSync(file);
-            const df=path.resolve(__dirname,'dist','pages',lang,`${safe}.md`);
+            const df=path.resolve(__dirname,'dist','pages',lang,safe+'.md');
             if(fs.existsSync(df))fs.unlinkSync(df);
-            console.log(`Deleted: ${lang}/${safe}.md`);
+            console.log('Deleted: '+lang+'/'+safe+'.md');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
           }catch(e){console.error('Delete:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
@@ -104,7 +106,7 @@ function wikiPlugin(){
               icon:d.icon||'',theme:d.theme||'dark'
             }));
             hashedCreds={uh,ph,dn:dn||'Admin'};
-            console.log('Installed to dist/.data/');
+            console.log('Installed');
             res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}));
           }catch(e){console.error('Install:',e.message);res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:e.message}))}
         });return;
@@ -141,6 +143,7 @@ function wikiPlugin(){
         try{const d=JSON.parse(fs.readFileSync(cf,'utf-8'));res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({installed:!!(d.uh&&d.ph)}))}catch{res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({installed:false}))}
         return;
       }
+      // /api/users
       const usersFile = path.join(process.cwd(), 'dist', '.data', 'users.json');
       if(req.url && req.url.startsWith('/api/users')){
         const u = new URL(req.url, 'http://localhost');
@@ -187,6 +190,7 @@ function wikiPlugin(){
           return;
         }
       }
+      // /api/page-meta
       const pageMetaFile = path.join(process.cwd(), 'dist', '.data', 'page-meta.json');
       if(req.method === 'GET' && req.url && req.url.startsWith('/api/page-meta')){
         const pu = new URL(req.url, 'http://localhost');
@@ -194,7 +198,7 @@ function wikiPlugin(){
         const pSlug = pu.searchParams.get('slug');
         const pLang = pu.searchParams.get('lang');
         if(pSlug && pLang){
-          const key = `${pLang}:${pSlug}`;
+          const key = pLang+':'+pSlug;
           res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});
           res.end(JSON.stringify(meta[key] || {}));
           return;
@@ -211,7 +215,7 @@ function wikiPlugin(){
       next();
     });
   }
-  return{name:'wiki',resolveId(id){if(id===V)return R;if(id===AV)return AR},load(id){if(id===R)return`const data=${JSON.stringify(loadAll(this))};export default data;`;if(id===AR)return`export default ${JSON.stringify(hashedCreds)};`},configureServer:addMiddleware,configurePreviewServer:addMiddleware};
+  return{name:'wiki',resolveId(id){if(id===V)return R;if(id===AV)return AR},load(id){if(id===R)return'const data='+JSON.stringify(loadAll(this))+';export default data;';if(id===AR)return'export default '+JSON.stringify(hashedCreds)+';'},configureServer:(s)=>addMiddleware(s,false),configurePreviewServer:(s)=>addMiddleware(s,true)};
 }
 
 function emitPlugin(){
@@ -239,8 +243,8 @@ function emitPlugin(){
         icon:sc?.icon||sd.icon||'',
         theme:sc?.theme||sd.theme||'dark'
       };
-      const script=`(function(){window.__EMERALD_CONFIG__=${JSON.stringify(out)};})();`;
-      return html.replace('</head>',`<script>${script}</script></head>`);
+      const script='(function(){window.__EMERALD_CONFIG__='+JSON.stringify(out)+';})();';
+      return html.replace('</head>','<script>'+script+'</script></head>');
     },
     async closeBundle(){
       const dist=path.resolve(__dirname,'dist');let fc=0;
@@ -253,7 +257,7 @@ function emitPlugin(){
           for(const f of fs2){fs.copyFileSync(path.join(sd,f),path.join(dd,f));fc++}
         }
       }catch{}
-      console.log(`pages/ (${fc} .md files)`);
+      console.log('pages/ ('+fc+' .md files)');
     }
   };
 }

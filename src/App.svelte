@@ -27,25 +27,27 @@ $effect(()=>{
 });
 
 let hash=$state(typeof window!=='undefined'?window.location.hash:'');
-function ph(){
-  let h=hash.slice(1)||'/'+(sc.defaultLanguage||'fa')+'/'+(sc.homePage||'home');
-  const[p,q]=h.split('?');const pr=new URLSearchParams(q||'');
+function pr(h,sc){
+  let hh=h.slice(1)||'/'+(sc.defaultLanguage||'fa')+'/'+(sc.homePage||'home');
+  const[p,q]=hh.split('?');const qp=new URLSearchParams(q||'');
   const parts=p.replace(/^\//,'').split('/');
   const e=parts[0]==='edit';if(e)parts.shift();
   let lfp=null;
   const allLangs=[...new Set([...(sc.languages||[]),'fa','en'])];
   if(parts.length&&allLangs.includes(parts[0]))lfp=parts.shift();
   let l=lfp||(sc.defaultLanguage||'fa');
-  const ql=pr.get('lang');if(ql==='en'||ql==='fa')l=ql;
+  const ql=qp.get('lang');if(ql==='en'||ql==='fa')l=ql;
   const f=parts[0];
   if(f==='login')return{l,r:'login',sl:f,edit:false};
   if(f==='settings')return{l,r:'settings',sl:f,edit:false};
   return{l,r:'wiki',sl:parts.join('/')||(sc.homePage||'home'),edit:e};
 }
-let lang=$derived(ph().l);
-let route=$derived(ph().r);
-let slug=$derived(ph().sl);
-let edit=$derived(ph().edit);
+const _i=pr(typeof window!=="undefined"?window.location.hash:"", SITE_DEFAULTS);
+let lang=$state(_i.l);
+let route=$state(_i.r);
+let slug=$state(_i.sl);
+let edit=$state(_i.edit);
+$effect(()=>{const p=pr(hash,sc);lang=p.l;route=p.r;slug=p.sl;edit=p.edit});
 let sq=$state('');
 let user=$state(null);
 let role=$state(null);

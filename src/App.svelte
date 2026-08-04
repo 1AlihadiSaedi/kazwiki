@@ -60,7 +60,7 @@ async function restoreAuth(){
 }
 
 function rr(){
-  let h=window.location.hash.slice(1)||`/${sc.defaultLanguage||'fa'}/${sc.homePage||'home'}`;
+  let h=window.location.hash.slice(1)||'/'+(sc.defaultLanguage||'fa')+'/'+(sc.homePage||'home');
   const[p,q]=h.split('?');const pr=new URLSearchParams(q||'');
   const parts=p.replace(/^\//,'').split('/');
   const isEdit=parts[0]==='edit';if(isEdit)parts.shift();
@@ -74,14 +74,11 @@ function rr(){
   const ql=pr.get('lang');if(ql==='en'||ql==='fa')lang=ql
 }
 
-$effect(()=>{
-  window.addEventListener('hashchange',rr);rr();
-  return()=>window.removeEventListener('hashchange',rr)
-});
+window.addEventListener('hashchange',rr);rr();$effect(()=>{return()=>window.removeEventListener('hashchange',rr)});
 
-function nav(s){window.location.hash=`#/${lang}/${s}`}
-function go(rt){window.location.hash=`#/${lang}/${rt}`}
-function te(){window.location.hash=edit?`#/${lang}/${slug}`:`#/edit/${lang}/${slug}`}
+function nav(s){window.location.hash='#'+lang+'/'+s}
+function go(rt){window.location.hash='#'+lang+'/'+rt}
+function te(){window.location.hash=edit?'#'+lang+'/'+slug:'#/edit/'+lang+'/'+slug}
 function hs(q){sq=q;if(window.innerWidth>=769&&q&&!so){so=true;ss(true)}}
 
 const SK='emerald-wiki-sidebar';

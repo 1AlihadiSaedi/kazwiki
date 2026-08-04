@@ -144,7 +144,7 @@ $effect(()=>{
       {:else if edit}
         <div class="pe"><h2>{t(lang,'pageNotFound')}</h2><p><a href="#/{lang}/login">{t(lang,'login')}</a></p></div>
       {:else}
-        {#key slug}<WikiPage {slug} {lang}/>{/key}
+        <WikiPage {slug} {lang}/>
       {/if}
     </main>
   </div>

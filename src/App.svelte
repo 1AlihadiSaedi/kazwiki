@@ -26,10 +26,26 @@ $effect(()=>{
   });
 });
 
-let lang=$state('fa');
-let route=$state('wiki');
-let slug=$state('home');
-let edit=$state(false);
+let hash=$state(typeof window!=='undefined'?window.location.hash:'');
+function ph(){
+  let h=hash.slice(1)||'/'+(sc.defaultLanguage||'fa')+'/'+(sc.homePage||'home');
+  const[p,q]=h.split('?');const pr=new URLSearchParams(q||'');
+  const parts=p.replace(/^\//,'').split('/');
+  const e=parts[0]==='edit';if(e)parts.shift();
+  let lfp=null;
+  const allLangs=[...new Set([...(sc.languages||[]),'fa','en'])];
+  if(parts.length&&allLangs.includes(parts[0]))lfp=parts.shift();
+  let l=lfp||(sc.defaultLanguage||'fa');
+  const ql=pr.get('lang');if(ql==='en'||ql==='fa')l=ql;
+  const f=parts[0];
+  if(f==='login')return{l,r:'login',sl:f,edit:false};
+  if(f==='settings')return{l,r:'settings',sl:f,edit:false};
+  return{l,r:'wiki',sl:parts.join('/')||(sc.homePage||'home'),edit:e};
+}
+let lang=$derived(ph().l);
+let route=$derived(ph().r);
+let slug=$derived(ph().sl);
+let edit=$derived(ph().edit);
 let sq=$state('');
 let user=$state(null);
 let role=$state(null);
@@ -59,22 +75,8 @@ async function restoreAuth(){
   }catch{}
 }
 
-function rr(){
-  let h=window.location.hash.slice(1)||'/'+(sc.defaultLanguage||'fa')+'/'+(sc.homePage||'home');
-  const[p,q]=h.split('?');const pr=new URLSearchParams(q||'');
-  const parts=p.replace(/^\//,'').split('/');
-  const isEdit=parts[0]==='edit';if(isEdit)parts.shift();
-  let lfp=null;
-  const allLangs=[...new Set([...(sc.languages||[]),'fa','en'])];if(parts.length&&allLangs.includes(parts[0]))lfp=parts.shift();
-  if(lfp)lang=lfp;
-  const f=parts[0];
-  if(f==='login'){route='login';slug=f;edit=false}
-  else if(f==='settings'){route='settings';slug=f;edit=false}
-  else{route='wiki';slug=parts.join('/')||(sc.homePage||'home');edit=isEdit}
-  const ql=pr.get('lang');if(ql==='en'||ql==='fa')lang=ql
-}
-
-onMount(()=>{window.addEventListener('hashchange',rr);rr();return()=>window.removeEventListener('hashchange',rr)});
+function hc(){hash=window.location.hash}
+onMount(()=>{hash=window.location.hash;window.addEventListener('hashchange',hc);return()=>window.removeEventListener('hashchange',hc)});
 
 function nav(s){window.location.hash='#'+lang+'/'+s}
 function go(rt){window.location.hash='#'+lang+'/'+rt}

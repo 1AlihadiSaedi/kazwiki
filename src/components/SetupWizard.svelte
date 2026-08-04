@@ -168,9 +168,8 @@ async function handleInstall() {
       localStorage.setItem('emerald-wiki-roles', JSON.stringify(DEFAULT_ROLES));
       localStorage.setItem('emerald-wiki-i18n', JSON.stringify(DEFAULT_TRANSLATIONS));
       localStorage.setItem('emerald-wiki-version', '3');
-      onComplete?.();
-      window.location.hash = '#/fa/home';
-      window.location.reload();
+      window.location.hash = '#/' + form.defaultLanguage + '/home';
+      setTimeout(() => window.location.reload(), 100);
     } else {
       error = d.error || 'Install failed';
     }

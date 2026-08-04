@@ -6,7 +6,7 @@ onPageSaved.listen=fn=>{onPageSaved._fns.push(fn);return()=>{onPageSaved._fns=on
 onPageSaved.fire=()=>{onPageSaved._fns.forEach(fn=>fn())};
 export async function fetchLiveContent(slug,lang){
   const key=lang+'/'+slug;
-  try{const r=await fetch('/pages/'+lang+'/'+slug+'.md');if(r.ok){const t=await r.text();liveCache[key]=t;return t}}catch{}
+  try{const r=await fetch('/pages/'+lang+'/'+slug+'.md');if(r.ok){const t=await r.text();if(t.trim().startsWith('<!')||t.trim().startsWith('<html'))return null;liveCache[key]=t;return t}}catch{}
   return null;
 }
 export function getPageIndex(){
